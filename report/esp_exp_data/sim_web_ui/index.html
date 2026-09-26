@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SPI Core Analyzer & FPGA top.v FSM Simulator - Interactive logic analyzer and simulation environment.">
+    <title>SPI Core Analyzer & FPGA top.v Simulator</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-wrapper">
+        <!-- Top Navigation Header -->
+        <header class="main-header">
+            <div class="logo-area">
+                <svg class="logo-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="6 2 18 2 18 6 6 6 6 2"></polygon>
+                    <rect x="3" y="6" width="18" height="16" rx="2"></rect>
+                    <line x1="10" y1="12" x2="14" y2="12"></line>
+                    <line x1="8" y1="16" x2="16" y2="16"></line>
+                </svg>
+                <div class="logo-text">
+                    <h1>SPI Core Analyzer</h1>
+                    <span class="version-tag">FPGA top.v SIMULATOR</span>
+                </div>
+            </div>
+
+            <!-- Header Controls -->
+            <div class="header-controls">
+                <div class="control-box ip-config">
+                    <span class="control-box-label">SIMULATED TARGET</span>
+                    <div class="input-with-button">
+                        <input type="text" id="espIpAddress" value="FPGA top.v (ROM Core)" readonly>
+                        <button id="btnConnect" class="connected-btn">Connected</button>
+                    </div>
+                </div>
+
+                <div class="status-indicator-badge active-badge" id="statusBadge">
+                    <div class="indicator-dot active-dot"></div>
+                    <span class="indicator-text">FPGA FSM ACTIVE</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- FPGA Core Registers Banner -->
+        <div class="fpga-status-banner">
+            <div class="fpga-card">
+                <span class="fpga-label">SENSOR DATA INPUT</span>
+                <span class="fpga-val text-accent" id="fpgaSensorData">0x2800 (0010 1000 0000 0000)</span>
+            </div>
+            <div class="fpga-card">
+                <span class="fpga-label">FPGA READ REG</span>
+                <span class="fpga-val text-miso" id="fpgaReadReg">0x2800</span>
+            </div>
+            <div class="fpga-card">
+                <span class="fpga-label">FPGA WRITE REG</span>
+                <span class="fpga-val text-mosi" id="fpgaWriteReg">0x0000</span>
+            </div>
+            <div class="fpga-card">
+                <span class="fpga-label">FSM STATE</span>
+                <span class="fpga-val text-cs" id="fpgaFsmState">DETECT (IDLE)</span>
+            </div>
+        </div>
+
+        <!-- Main Workspace Grid -->
+        <main class="dashboard-grid">
+            <!-- Sidebar -->
+            <aside class="sidebar-panel">
+                <!-- Preset Quick Actions Card -->
+                <section class="card border-glow-clk">
+                    <h2 class="card-header">
+                        <span>Experiment Presets</span>
+                        <span class="card-subtitle">Quick FPGA Test Sequences</span>
+                    </h2>
+                    <div class="preset-buttons-grid">
+                        <button class="preset-btn btn-preset-read" onclick="loadPreset('read_2800')">
+                            <span class="preset-title">📥 Read Sensor Data (0x2800)</span>
+                            <span class="preset-desc">Opcode 00 + Addr 1000 -> MISO returns 2800</span>
+                        </button>
+                        <button class="preset-btn btn-preset-write" onclick="loadPreset('write_0028')">
+                            <span class="preset-title">📤 Write Register (0x0028)</span>
+                            <span class="preset-desc">Opcode 01 -> Updates write_reg to 0028</span>
+                        </button>
+                        <button class="preset-btn btn-preset-a000" onclick="loadPreset('write_a000')">
+                            <span class="preset-title">⚡ Write A000 (01010101...)</span>
+                            <span class="preset-desc">Alternating bits -> write_reg becomes A000</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Clock Controller Widget -->
+                <section class="card border-glow-clk">
+                    <h2 class="card-header">
+                        <span>Clock Controller</span>
+                        <span class="card-subtitle">Auto Generator & Frequency</span>
+                    </h2>
+                    
+                    <div class="config-section">
+                        <label class="section-micro-label" for="numClockFreq">CLOCK FREQUENCY (Hz)</label>
+                        <div class="frequency-slider-group">
+                            <input type="range" id="rngClockFreq" min="0.5" max="20" step="0.5" value="2.0" oninput="updateFreqFromRange(this.value)">
+                            <div class="input-unit-wrap">
+                                <input type="number" id="numClockFreq" min="0.5" max="20" step="0.5" value="2.0" onchange="updateFreqFromInput(this.value)">
+                                <span class="input-unit">Hz</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sequence Stimulus Generator -->
+                <section class="card border-glow-mosi">
+                    <h2 class="card-header">
+                        <span>Sequence Generator</span>
+                        <span class="card-subtitle">SPI Transaction Stimulus</span>
+                    </h2>
+                    
+                    <div class="form-grid">
+                        <div class="form-group size-small">
+                            <label for="numBitsN">Bits (N)</label>
+                            <input type="number" id="numBitsN" min="1" max="64" value="22" onchange="onNChange(this.value)">
+                        </div>
+
+                        <div class="form-group size-medium">
+                            <label for="selCsActive">CS Mode</label>
+                            <select id="selCsActive">
+                                <option value="0" selected>Active LOW (0)</option>
+                                <option value="1">Active HIGH (1)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="sequences-input-panel">
+                        <div class="seq-group">
+                            <div class="seq-label-row">
+                                <label for="txtMosiSeq" class="text-mosi">MOSI SEQUENCE BITS</label>
+                                <span class="seq-counter" id="lblMosiCounter">22 bits</span>
+                            </div>
+                            <div class="seq-input-wrap">
+                                <input type="text" id="txtMosiSeq" value="0010000000000000000000" placeholder="MOSI bit sequence" oninput="validateSeqInput(this)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-btn-container">
+                        <button class="btn-primary" id="btnRunSequence" onclick="runSequence()">
+                            <svg class="run-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            Run Sequence Simulation
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Metrics & Signal Telemetry -->
+                <section class="card border-glow-miso">
+                    <h2 class="card-header">
+                        <span>Signal Telemetry</span>
+                        <span class="card-subtitle">Pin Status & Frequency</span>
+                    </h2>
+                    <div class="telemetry-grid">
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">CLK Frequency</span>
+                            <span class="telemetry-val" id="telClkFreq">2.0 Hz</span>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">Active State</span>
+                            <div class="mini-pin-row">
+                                <span class="mini-pin-status" id="miniCS">CS</span>
+                                <span class="mini-pin-status" id="miniCLK">CLK</span>
+                                <span class="mini-pin-status" id="miniRST">RST</span>
+                                <span class="mini-pin-status" id="miniMISO">MISO</span>
+                                <span class="mini-pin-status" id="miniMOSI">MOSI</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+
+            <!-- Main Display Panel -->
+            <div class="main-display-panel">
+                <!-- Logic Analyzer Graph -->
+                <section class="card main-canvas-card" id="cardAnalyzer">
+                    <header class="canvas-header-bar">
+                        <div class="canvas-title-group">
+                            <h2 class="card-header-main">Logic Analyzer Waveforms (CS, CLK, RST, MISO, MOSI)</h2>
+                            <p class="card-header-sub">Simulated SPI logic analyzer display with timing cursors and dynamic zoom.</p>
+                        </div>
+                        <div class="canvas-actions">
+                            <button class="toolbar-btn text-accent" id="btnPause" onclick="togglePause()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                                <span id="pauseTxt">Pause Stream</span>
+                            </button>
+                            <button class="toolbar-btn" onclick="clearBuffer()">Clear</button>
+                        </div>
+                    </header>
+
+                    <div class="waveform-viewer-container">
+                        <div class="canvas-viewport">
+                            <canvas id="laCanvas"></canvas>
+                        </div>
+                        
+                        <div class="canvas-controls-bar">
+                            <div class="zoom-controls">
+                                <button class="btn-circle" onclick="adjustZoom(1.2)" title="Zoom In">+</button>
+                                <span class="zoom-level-text" id="zoomLevelDisplay">100%</span>
+                                <button class="btn-circle" onclick="adjustZoom(0.8)" title="Zoom Out">-</button>
+                                <button class="btn-secondary" onclick="resetZoomAndScroll()">Reset View</button>
+                            </div>
+
+                            <div class="cursor-measurements-panel">
+                                <div class="cursor-val-box cursor-a">
+                                    <span class="cursor-tag">Cursor A</span>
+                                    <span id="cursorAVal" class="cursor-data">Disabled</span>
+                                </div>
+                                <div class="cursor-val-box cursor-b">
+                                    <span class="cursor-tag">Cursor B</span>
+                                    <span id="cursorBVal" class="cursor-data">Disabled</span>
+                                </div>
+                                <div class="cursor-val-box cursor-delta">
+                                    <span class="cursor-tag">Delta (&Delta;T)</span>
+                                    <span id="cursorDeltaVal" class="cursor-data">--</span>
+                                </div>
+                                <div class="cursor-val-box cursor-freq">
+                                    <span class="cursor-tag">Freq (1/&Delta;T)</span>
+                                    <span id="cursorFreqVal" class="cursor-data">--</span>
+                                </div>
+                                <button class="toolbar-btn btn-cursor-toggle" id="btnToggleCursors" onclick="toggleCursors()">
+                                    Enable Cursors
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- MISO Data Capture Results Card -->
+                <section class="card results-card border-glow-miso">
+                    <header class="results-header-bar">
+                        <div class="results-title-group">
+                            <h2 class="card-header-main">Recorded MISO Data Output</h2>
+                            <p class="card-header-sub">Bits recorded from FPGA MISO line during sequence execution.</p>
+                        </div>
+                        <div class="decoder-actions">
+                            <div class="decoder-select-group">
+                                <label for="selDecFormat">Display Format</label>
+                                <select id="selDecFormat" onchange="renderRecordedMiso()">
+                                    <option value="raw" selected>Raw Binary (1010...)</option>
+                                    <option value="hex">Hexadecimal (0x...)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="miso-display-container">
+                        <div class="miso-output-banner recorded-active">
+                            <span class="miso-label">MISO DATA:</span>
+                            <span class="miso-value" id="lblMisoDataValue">[Click a Preset or 'Run Sequence' to execute]</span>
+                        </div>
+                        
+                        <div class="run-stats-grid">
+                            <div class="stat-box">
+                                <span class="stat-lbl">Bits Captured</span>
+                                <span class="stat-val" id="statBitsCaptured">0</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-lbl">Clk Freq Used</span>
+                                <span class="stat-val" id="statClkFreq">2.0 Hz</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-lbl">Capture Time</span>
+                                <span class="stat-val" id="statCaptureTime">--</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-lbl">Transaction Status</span>
+                                <span class="stat-val success-text" id="statTxStatus">IDLE</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

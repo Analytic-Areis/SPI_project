@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SPI Core Analyzer v2 - A high-performance web-based logic analyzer and hardware controller dashboard featuring real-time stream decoding, interactive waveforms, measurement cursors, and simulation modes.">
+    <title>SPI Core Analyzer v2.0 - Dashboard</title>
+    <!-- Google Fonts for premium typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-wrapper">
+        <!-- Modern Glassmorphism Header -->
+        <header class="main-header">
+            <div class="logo-area">
+                <svg class="logo-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="6 2 18 2 18 6 6 6 6 2"></polygon>
+                    <rect x="3" y="6" width="18" height="16" rx="2"></rect>
+                    <line x1="10" y1="12" x2="14" y2="12"></line>
+                    <line x1="8" y1="16" x2="16" y2="16"></line>
+                </svg>
+                <div class="logo-text">
+                    <h1>SPI Core Analyzer</h1>
+                    <span class="version-tag">v2.0 PRO</span>
+                </div>
+            </div>
+
+            <!-- Global Controls & Settings -->
+            <div class="header-controls">
+                <!-- IP Setup -->
+                <div class="control-box ip-config" id="ipConfigGroup">
+                    <span class="control-box-label">ESP32 TARGET</span>
+                    <div class="input-with-button">
+                        <input type="text" id="espIpAddress" value="192.168.4.1" placeholder="e.g. 192.168.1.100">
+                        <button id="btnConnect" onclick="toggleConnection()">Connect</button>
+                    </div>
+                </div>
+
+                <!-- Simulation Mode Toggle -->
+                <div class="control-box sim-config">
+                    <span class="control-box-label">SOURCE MODE</span>
+                    <div class="toggle-switch-wrapper">
+                        <span class="toggle-mode-label" id="modeHardwareLabel">Hardware</span>
+                        <label class="switch">
+                            <input type="checkbox" id="chkSimulationMode" onchange="toggleSimulationMode(this.checked)">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="toggle-mode-label" id="modeSimulationLabel" style="color: var(--accent-sim);">Simulation</span>
+                    </div>
+                </div>
+
+                <!-- Status Badge -->
+                <div class="status-indicator-badge" id="statusBadge">
+                    <div class="indicator-dot" id="statusDot"></div>
+                    <span class="indicator-text" id="statusText">DISCONNECTED</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Body Grid Layout -->
+        <main class="dashboard-grid">
+            <!-- LEFT PANEL: Configuration, Stimulus and Telemetry -->
+            <aside class="sidebar-panel">
+                <!-- Card 1: Stimulus & Pin Control -->
+                <section class="card border-glow-cs" id="cardManualControl">
+                    <h2 class="card-header">
+                        <span>Signal Stimulus</span>
+                        <span class="card-subtitle">Manual GPIO Controller</span>
+                    </h2>
+                    <div class="stimulus-grid">
+                        <!-- CS -->
+                        <div class="stimulus-row">
+                            <div class="pin-info">
+                                <span class="pin-badge color-cs">CS</span>
+                                <span class="pin-meta">Chip Select (Active LOW)</span>
+                            </div>
+                            <button id="btnCS" class="btn-action active-low" onclick="sendControl('cs')">HIGH (Idle)</button>
+                        </div>
+                        <!-- RST -->
+                        <div class="stimulus-row">
+                            <div class="pin-info">
+                                <span class="pin-badge color-rst">RST</span>
+                                <span class="pin-meta">FPGA Reset (Active HIGH)</span>
+                            </div>
+                            <button id="btnRST" class="btn-action" onclick="sendControl('rst')">LOW (Run)</button>
+                        </div>
+                        <!-- MOSI -->
+                        <div class="stimulus-row">
+                            <div class="pin-info">
+                                <span class="pin-badge color-mosi">MOSI</span>
+                                <span class="pin-meta">Master Out Slave In</span>
+                            </div>
+                            <button id="btnMOSI" class="btn-action" onclick="sendControl('mosi')">LOW (0)</button>
+                        </div>
+                    </div>
+                    
+                    <div class="quick-burst-panel">
+                        <span class="section-micro-label">STIMULUS GENERATOR</span>
+                        <div class="burst-controls">
+                            <input type="text" id="txtBurstHex" value="A5" max="2" placeholder="Hex byte, e.g. A5">
+                            <button class="btn-secondary" onclick="triggerBurstHex()">Send Byte</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Card 2: SPI Decoder Config -->
+                <section class="card border-glow-miso" id="cardSpiConfig">
+                    <h2 class="card-header">
+                        <span>SPI Decoder Settings</span>
+                        <span class="card-subtitle">Protocol Decodification Specs</span>
+                    </h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="selSpiMode">SPI Mode</label>
+                            <select id="selSpiMode" onchange="updateSpiSettings()">
+                                <option value="0" selected>Mode 0 (CPOL=0, CPHA=0)</option>
+                                <option value="1">Mode 1 (CPOL=0, CPHA=1)</option>
+                                <option value="2">Mode 2 (CPOL=1, CPHA=0)</option>
+                                <option value="3">Mode 3 (CPOL=1, CPHA=1)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="selBitOrder">Bit Order</label>
+                            <select id="selBitOrder" onchange="updateSpiSettings()">
+                                <option value="msb" selected>MSB First (Standard)</option>
+                                <option value="lsb">LSB First</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="selWordLength">Word Size</label>
+                            <select id="selWordLength" onchange="updateSpiSettings()">
+                                <option value="8" selected>8-Bit Byte</option>
+                                <option value="16">16-Bit Word</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Card 3: Metrics & Telemetry -->
+                <section class="card border-glow-clk" id="cardTelemetry">
+                    <h2 class="card-header">
+                        <span>Live Telemetry</span>
+                        <span class="card-subtitle">Signal Metrics & Statistics</span>
+                    </h2>
+                    <div class="telemetry-grid">
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">CLK Frequency</span>
+                            <span class="telemetry-val" id="telClkFreq">-- Hz</span>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">CLK Duty Cycle</span>
+                            <span class="telemetry-val" id="telClkDuty">-- %</span>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">Transactions (CS)</span>
+                            <span class="telemetry-val" id="telTxCount">0</span>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">Signal State</span>
+                            <div class="mini-pin-row">
+                                <span class="mini-pin-status cs-inactive" id="miniCS">CS</span>
+                                <span class="mini-pin-status clk-inactive" id="miniCLK">CLK</span>
+                                <span class="mini-pin-status rst-inactive" id="miniRST">RST</span>
+                                <span class="mini-pin-status miso-inactive" id="miniMISO">MISO</span>
+                                <span class="mini-pin-status mosi-inactive" id="miniMOSI">MOSI</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+
+            <!-- RIGHT PANEL: Logic Waveform & Decoder Log -->
+            <div class="main-display-panel">
+                <!-- Logic Analyzer Waveform Canvas Container -->
+                <section class="card main-canvas-card" id="cardAnalyzer">
+                    <header class="canvas-header-bar">
+                        <div class="canvas-title-group">
+                            <h2 class="card-header-main">Logic Analyzer Waveforms</h2>
+                            <p class="card-header-sub">Drag timeline to pan. Scroll or use buttons to zoom. Drag cursors A/B for measurements.</p>
+                        </div>
+                        <div class="canvas-actions">
+                            <button class="toolbar-btn text-accent" id="btnPause" onclick="togglePause()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                <span id="pauseTxt">Pause Stream</span>
+                            </button>
+                            <button class="toolbar-btn" onclick="clearBuffer()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                Clear Buffer
+                            </button>
+                        </div>
+                    </header>
+
+                    <!-- Waveform Viewer Display -->
+                    <div class="waveform-viewer-container">
+                        <div class="canvas-viewport">
+                            <canvas id="laCanvas"></canvas>
+                        </div>
+                        <!-- Custom Timeline Ruler Overlay/Measurements -->
+                        <div class="canvas-controls-bar">
+                            <!-- Zoom & Scale Controls -->
+                            <div class="zoom-controls">
+                                <button class="btn-circle" onclick="adjustZoom(1.2)" title="Zoom In">+</button>
+                                <span class="zoom-level-text" id="zoomLevelDisplay">100%</span>
+                                <button class="btn-circle" onclick="adjustZoom(0.8)" title="Zoom Out">-</button>
+                                <button class="btn-secondary" onclick="resetZoomAndScroll()">Reset View</button>
+                            </div>
+
+                            <!-- Measurement Cursor Indicators -->
+                            <div class="cursor-measurements-panel">
+                                <div class="cursor-val-box cursor-a">
+                                    <span class="cursor-tag">Cursor A</span>
+                                    <span id="cursorAVal" class="cursor-data">Disabled</span>
+                                </div>
+                                <div class="cursor-val-box cursor-b">
+                                    <span class="cursor-tag">Cursor B</span>
+                                    <span id="cursorBVal" class="cursor-data">Disabled</span>
+                                </div>
+                                <div class="cursor-val-box cursor-delta">
+                                    <span class="cursor-tag">Delta (&Delta;T)</span>
+                                    <span id="cursorDeltaVal" class="cursor-data">--</span>
+                                </div>
+                                <div class="cursor-val-box cursor-freq">
+                                    <span class="cursor-tag">Freq (1/&Delta;T)</span>
+                                    <span id="cursorFreqVal" class="cursor-data">--</span>
+                                </div>
+                                <button class="toolbar-btn btn-cursor-toggle" id="btnToggleCursors" onclick="toggleCursors()">
+                                    Enable Cursors
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SPI Protocol Decoder Card -->
+                <section class="card decoder-card" id="cardDecoder">
+                    <header class="decoder-header-bar">
+                        <div class="decoder-title-group">
+                            <h2 class="card-header-main">SPI Protocol Decoder Output</h2>
+                            <p class="card-header-sub">Chronological representation of SPI transfers captured inside transactions.</p>
+                        </div>
+                        <div class="decoder-actions">
+                            <div class="decoder-select-group">
+                                <label for="selDecFormat">Format</label>
+                                <select id="selDecFormat" onchange="renderDecodedHistory()">
+                                    <option value="hex" selected>Hexadecimal (0xAA)</option>
+                                    <option value="dec">Decimal (170)</option>
+                                    <option value="ascii">ASCII Characters</option>
+                                    <option value="bin">Binary (10101010)</option>
+                                </select>
+                            </div>
+                            <button class="toolbar-btn text-danger" onclick="clearDecoderLog()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                Clear Decoder Log
+                            </button>
+                        </div>
+                    </header>
+
+                    <!-- Scrollable Decoded Packet Console -->
+                    <div class="decoder-table-wrapper">
+                        <table class="decoder-table" id="tblDecoder">
+                            <thead>
+                                <tr>
+                                    <th style="width: 15%">Transaction #</th>
+                                    <th style="width: 20%">Timestamp</th>
+                                    <th style="width: 32.5%">MOSI Payload</th>
+                                    <th style="width: 32.5%">MISO Payload</th>
+                                </tr>
+                            </thead>
+                            <tbody id="decoderLogBody">
+                                <tr class="empty-row">
+                                    <td colspan="4">No transactions captured. Ensure CS line is asserted (LOW) to record transaction packets.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Script Entrypoint -->
+    <script src="script.js"></script>
+</body>
+</html>

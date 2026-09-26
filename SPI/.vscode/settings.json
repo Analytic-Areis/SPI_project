@@ -1,0 +1,9 @@
+{
+  "verilog.linting.iverilog.arguments": "-I32-reg-system",
+  "verilog.linting.iverilog.includePath": [
+    "32-reg-system"
+  ],
+  "verilog.linting.verilator.arguments": "-I32-reg-system",
+  "verilog.linting.xvlog.arguments": "-i 32-reg-system",
+  "verilog.linting.modelsim.arguments": "+incdir+32-reg-system"
+}

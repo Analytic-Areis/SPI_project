@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SPI Core Analyzer v3.0 - Advanced interactive logic analyzer and sequence controller with dynamic clock frequency management and custom MISO recording.">
+    <title>SPI Core Analyzer v3.0</title>
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-wrapper">
+        <!-- Top Navigation Header -->
+        <header class="main-header">
+            <div class="logo-area">
+                <svg class="logo-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="6 2 18 2 18 6 6 6 6 2"></polygon>
+                    <rect x="3" y="6" width="18" height="16" rx="2"></rect>
+                    <line x1="10" y1="12" x2="14" y2="12"></line>
+                    <line x1="8" y1="16" x2="16" y2="16"></line>
+                </svg>
+                <div class="logo-text">
+                    <h1>SPI Analyzer</h1>
+                    <span class="version-tag">v3.0 PRO</span>
+                </div>
+            </div>
+
+            <!-- Global Hardware Connection Details -->
+            <div class="header-controls">
+                <div class="control-box ip-config" id="ipConfigGroup">
+                    <span class="control-box-label">ESP32 IP TARGET</span>
+                    <div class="input-with-button">
+                        <input type="text" id="espIpAddress" value="192.168.4.1" placeholder="e.g. 192.168.1.100">
+                        <button id="btnConnect" onclick="toggleConnection()">Connect</button>
+                    </div>
+                </div>
+
+                <!-- Simulation Toggle -->
+                <div class="control-box sim-config">
+                    <span class="control-box-label">SOURCE SELECTION</span>
+                    <div class="toggle-switch-wrapper">
+                        <span class="toggle-mode-label" id="modeHardwareLabel">Hardware</span>
+                        <label class="switch">
+                            <input type="checkbox" id="chkSimulationMode" onchange="toggleSimulationMode(this.checked)">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="toggle-mode-label" id="modeSimulationLabel" style="color: var(--accent-sim);">Simulation</span>
+                    </div>
+                </div>
+
+                <!-- Status Dot Badge -->
+                <div class="status-indicator-badge" id="statusBadge">
+                    <div class="indicator-dot" id="statusDot"></div>
+                    <span class="indicator-text" id="statusText">DISCONNECTED</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace Grid -->
+        <main class="dashboard-grid">
+            <!-- Sidebar: Configuration controls -->
+            <aside class="sidebar-panel">
+                <!-- Card 1: Clock Controller Widget -->
+                <section class="card border-glow-clk">
+                    <h2 class="card-header">
+                        <span>Clock Controller</span>
+                        <span class="card-subtitle">Auto Generator & Freq Adjuster</span>
+                    </h2>
+                    
+                    <!-- Control Mode switch -->
+                    <div class="mode-selector-group">
+                        <span class="section-micro-label">CONTROL MODE</span>
+                        <div class="toggle-switch-wrapper custom-mode-switch">
+                            <span class="toggle-mode-label active-clk-mode" id="lblControlManual">Manual</span>
+                            <label class="switch">
+                                <input type="checkbox" id="chkControlMode" onchange="toggleControlMode(this.checked)">
+                                <span class="slider round slider-clk"></span>
+                            </label>
+                            <span class="toggle-mode-label" id="lblControlAuto">Automatic</span>
+                        </div>
+                    </div>
+
+                    <!-- Clock Frequency Config -->
+                    <div class="config-section" id="autoClockConfig">
+                        <label class="section-micro-label" for="numClockFreq">CLOCK FREQUENCY (Hz)</label>
+                        <div class="frequency-slider-group">
+                            <input type="range" id="rngClockFreq" min="0.1" max="50" step="0.1" value="2.0" oninput="updateFreqFromRange(this.value)">
+                            <div class="input-unit-wrap">
+                                <input type="number" id="numClockFreq" min="0.1" max="1000" step="0.1" value="2.0" onchange="updateFreqFromInput(this.value)">
+                                <span class="input-unit">Hz</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manual GPIO Buttons -->
+                    <div class="manual-control-grid" id="manualControls">
+                        <div class="manual-btn-wrapper">
+                            <span class="btn-pin-label text-cs">CS</span>
+                            <button id="btnCS" class="btn-action" onclick="sendManualControl('cs')">HIGH (Idle)</button>
+                        </div>
+                        <div class="manual-btn-wrapper">
+                            <span class="btn-pin-label text-rst">RST</span>
+                            <button id="btnRST" class="btn-action" onclick="sendManualControl('rst')">LOW (Run)</button>
+                        </div>
+                        <div class="manual-btn-wrapper">
+                            <span class="btn-pin-label text-mosi">MOSI</span>
+                            <button id="btnMOSI" class="btn-action" onclick="sendManualControl('mosi')">LOW (0)</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Card 2: Sequence Stimulus Generator -->
+                <section class="card border-glow-mosi">
+                    <h2 class="card-header">
+                        <span>Sequence Generator</span>
+                        <span class="card-subtitle">N-Bit Custom Signal Stimulus</span>
+                    </h2>
+                    
+                    <div class="form-grid">
+                        <div class="form-group size-small">
+                            <label for="numBitsN">Bits (N)</label>
+                            <input type="number" id="numBitsN" min="1" max="128" value="8" onchange="onNChange(this.value)">
+                        </div>
+
+                        <div class="form-group size-medium">
+                            <label for="selCsActive">CS Mode</label>
+                            <select id="selCsActive" onchange="onSequenceParamChange()">
+                                <option value="0" selected>Active LOW (0)</option>
+                                <option value="1">Active HIGH (1)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group size-medium">
+                            <label for="selRstLevel">RST Pin</label>
+                            <select id="selRstLevel" onchange="onSequenceParamChange()">
+                                <option value="0" selected>Off (LOW)</option>
+                                <option value="1">On (HIGH)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="sequences-input-panel">
+                        <!-- MOSI Sequence Box -->
+                        <div class="seq-group">
+                            <div class="seq-label-row">
+                                <label for="txtMosiSeq" class="text-mosi">MOSI SEQUENCE</label>
+                                <span class="seq-counter" id="lblMosiCounter">8 bits</span>
+                            </div>
+                            <div class="seq-input-wrap">
+                                <input type="text" id="txtMosiSeq" value="10101100" placeholder="e.g. 10101100" oninput="validateSeqInput(this)">
+                                <button class="btn-mini" onclick="generateRandomSeq('mosi')" title="Randomize bits">🎲</button>
+                            </div>
+                        </div>
+
+                        <!-- Advanced sequence fields (collapsible) -->
+                        <details class="advanced-sequences">
+                            <summary class="advanced-summary">Advanced Sequence Overrides (CS / RST)</summary>
+                            <div class="advanced-fields-grid">
+                                <div class="seq-group">
+                                    <div class="seq-label-row">
+                                        <label for="txtCsSeq" class="text-cs">CS SEQUENCE OVERRIDE</label>
+                                        <span class="seq-counter" id="lblCsCounter">8 bits</span>
+                                    </div>
+                                    <div class="seq-input-wrap">
+                                        <input type="text" id="txtCsSeq" value="00000000" placeholder="e.g. 00000000" oninput="validateSeqInput(this)">
+                                        <button class="btn-mini" onclick="resetSeqToDefault('cs')" title="Reset to CS level">🔄</button>
+                                    </div>
+                                </div>
+                                <div class="seq-group">
+                                    <div class="seq-label-row">
+                                        <label for="txtRstSeq" class="text-rst">RST SEQUENCE OVERRIDE</label>
+                                        <span class="seq-counter" id="lblRstCounter">8 bits</span>
+                                    </div>
+                                    <div class="seq-input-wrap">
+                                        <input type="text" id="txtRstSeq" value="00000000" placeholder="e.g. 00000000" oninput="validateSeqInput(this)">
+                                        <button class="btn-mini" onclick="resetSeqToDefault('rst')" title="Reset to RST level">🔄</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="action-btn-container">
+                        <button class="btn-primary" id="btnRunSequence" onclick="runSequence()">
+                            <svg class="run-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            Run Sequence
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Card 3: Metrics & Pins state -->
+                <section class="card border-glow-miso">
+                    <h2 class="card-header">
+                        <span>Signal Telemetry</span>
+                        <span class="card-subtitle">Pin Status & Frequency</span>
+                    </h2>
+                    <div class="telemetry-grid">
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">CLK Frequency</span>
+                            <span class="telemetry-val" id="telClkFreq">-- Hz</span>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">Active State</span>
+                            <div class="mini-pin-row">
+                                <span class="mini-pin-status" id="miniCS">CS</span>
+                                <span class="mini-pin-status" id="miniCLK">CLK</span>
+                                <span class="mini-pin-status" id="miniRST">RST</span>
+                                <span class="mini-pin-status" id="miniMISO">MISO</span>
+                                <span class="mini-pin-status" id="miniMOSI">MOSI</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+
+            <!-- Main Display: Canvas Waveform & MISO Data -->
+            <div class="main-display-panel">
+                <!-- Logic Analyzer Graph -->
+                <section class="card main-canvas-card" id="cardAnalyzer">
+                    <header class="canvas-header-bar">
+                        <div class="canvas-title-group">
+                            <h2 class="card-header-main">Logic Analyzer Waveforms</h2>
+                            <p class="card-header-sub">Pan waveform by dragging. Zoom with +/- or scroll wheel. Enable cursors to measure timing.</p>
+                        </div>
+                        <div class="canvas-actions">
+                            <button class="toolbar-btn text-accent" id="btnPause" onclick="togglePause()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                                <span id="pauseTxt">Pause Stream</span>
+                            </button>
+                            <button class="toolbar-btn" onclick="clearBuffer()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                Clear
+                            </button>
+                        </div>
+                    </header>
+
+                    <!-- Waveform Canvas -->
+                    <div class="waveform-viewer-container">
+                        <div class="canvas-viewport">
+                            <canvas id="laCanvas"></canvas>
+                        </div>
+                        
+                        <div class="canvas-controls-bar">
+                            <!-- Zooming -->
+                            <div class="zoom-controls">
+                                <button class="btn-circle" onclick="adjustZoom(1.2)" title="Zoom In">+</button>
+                                <span class="zoom-level-text" id="zoomLevelDisplay">100%</span>
+                                <button class="btn-circle" onclick="adjustZoom(0.8)" title="Zoom Out">-</button>
+                                <button class="btn-secondary" onclick="resetZoomAndScroll()">Reset View</button>
+                            </div>
+
+                            <!-- Cursors -->
+                            <div class="cursor-measurements-panel">
+                                <div class="cursor-val-box cursor-a">
+                                    <span class="cursor-tag">Cursor A</span>
+                                    <span id="cursorAVal" class="cursor-data">Disabled</span>
+                                </div>
+                                <div class="cursor-val-box cursor-b">
+                                    <span class="cursor-tag">Cursor B</span>
+                                    <span id="cursorBVal" class="cursor-data">Disabled</span>
+                                </div>
+                                <div class="cursor-val-box cursor-delta">
+                                    <span class="cursor-tag">Delta (&Delta;T)</span>
+                                    <span id="cursorDeltaVal" class="cursor-data">--</span>
+                                </div>
+                                <div class="cursor-val-box cursor-freq">
+                                    <span class="cursor-tag">Freq (1/&Delta;T)</span>
+                                    <span id="cursorFreqVal" class="cursor-data">--</span>
+                                </div>
+                                <button class="toolbar-btn btn-cursor-toggle" id="btnToggleCursors" onclick="toggleCursors()">
+                                    Enable Cursors
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- MISO Data Capture Results Card -->
+                <section class="card results-card border-glow-miso">
+                    <header class="results-header-bar">
+                        <div class="results-title-group">
+                            <h2 class="card-header-main">Recorded MISO Data Output</h2>
+                            <p class="card-header-sub">Bits recorded on each clock negative edge during the last sequence run.</p>
+                        </div>
+                        <div class="decoder-actions">
+                            <div class="decoder-select-group">
+                                <label for="selDecFormat">Display Format</label>
+                                <select id="selDecFormat" onchange="renderRecordedMiso()">
+                                    <option value="raw" selected>Raw Binary (1010...)</option>
+                                    <option value="hex">Hexadecimal (0x...)</option>
+                                    <option value="ascii">ASCII Text</option>
+                                </select>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="miso-display-container">
+                        <div class="miso-output-banner">
+                            <span class="miso-label">miso data:</span>
+                            <span class="miso-value" id="lblMisoDataValue">[No capture run yet. Click 'Run Sequence' to capture data]</span>
+                        </div>
+                        
+                        <div class="run-stats-grid">
+                            <div class="stat-box">
+                                <span class="stat-lbl">Bits Captured</span>
+                                <span class="stat-val" id="statBitsCaptured">0</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-lbl">Clk Freq Used</span>
+                                <span class="stat-val" id="statClkFreq">-- Hz</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-lbl">Capture Time</span>
+                                <span class="stat-val" id="statCaptureTime">--</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-lbl">Transaction Status</span>
+                                <span class="stat-val success-text" id="statTxStatus">IDLE</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Script Entrypoint -->
+    <script src="script.js"></script>
+</body>
+</html>

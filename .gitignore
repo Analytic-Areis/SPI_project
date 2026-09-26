@@ -1,0 +1,80 @@
+# ==============================================================================
+# Git Ignore for Scalable SPI Bus Controller Project
+# ==============================================================================
+
+# --- Operating System Files ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+*.swp
+*.swo
+
+# --- Editor and IDE Files ---
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --- Verilog & EDA Simulation Artifacts ---
+*.vcd
+*.vvp
+*.vpd
+*.dump
+a.out
+tb_v1
+tb_v2
+tb_v3
+tb_v4
+
+# --- Xilinx Vivado Intermediate Files & Caches ---
+*.jou
+*.log
+*.pb
+*.wdf
+*.dcp
+*.rpx
+*.rpt
+*.vdi
+*.tcl.dump
+.Xil/
+*.cache/
+*.hw/
+*.ip_user_files/
+*.sim/
+*.runs/
+# Keep precompiled bitstreams in the dedicated bitstreams/ directory
+!SPI_BIT/bitstreams/*.bit
+
+# --- PlatformIO & Embedded Build Artifacts ---
+.pio/
+.cache/
+compile_commands.json
+*.elf
+*.bin
+*.map
+*.hex
+*.a
+*.o
+
+# --- LaTeX Intermediate Build Files ---
+*.aux
+*.log
+*.nav
+*.snm
+*.toc
+*.out
+*.vrb
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+*.lot
+*.lof

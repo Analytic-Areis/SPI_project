@@ -1,0 +1,2495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPI Bus Controller — Verilog Project Plan</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a2035;
+            --bg-card-hover: #1f2847;
+            --bg-code: #0d1117;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-pink: #ec4899;
+            --border-color: #1e293b;
+            --gradient-1: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            --gradient-2: linear-gradient(135deg, #06b6d4, #3b82f6);
+            --gradient-3: linear-gradient(135deg, #10b981, #06b6d4);
+            --gradient-4: linear-gradient(135deg, #f59e0b, #ef4444);
+            --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* ─── Animated Background ─── */
+        .bg-grid {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image:
+                linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.12;
+            z-index: 0;
+            pointer-events: none;
+            animation: orbFloat 20s ease-in-out infinite alternate;
+        }
+
+        .bg-orb-1 { width: 500px; height: 500px; background: var(--accent-blue); top: -100px; right: -100px; }
+        .bg-orb-2 { width: 400px; height: 400px; background: var(--accent-purple); bottom: 200px; left: -100px; animation-delay: -7s; }
+        .bg-orb-3 { width: 300px; height: 300px; background: var(--accent-cyan); top: 50%; left: 50%; animation-delay: -14s; }
+
+        @keyframes orbFloat {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -40px) scale(1.05); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
+            100% { transform: translate(10px, -10px) scale(1.02); }
+        }
+
+        /* ─── Layout ─── */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ─── Navigation ─── */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 14, 26, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        nav .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+        }
+
+        .nav-logo {
+            font-weight: 800;
+            font-size: 1.1rem;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 4px;
+            list-style: none;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        /* ─── Hero ─── */
+        .hero {
+            padding: 140px 0 80px;
+            text-align: center;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+            margin-bottom: 24px;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .hero-badge::before {
+            content: '';
+            width: 8px; height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 5vw, 3.8rem);
+            font-weight: 900;
+            line-height: 1.1;
+            letter-spacing: -1.5px;
+            margin-bottom: 20px;
+            animation: fadeInUp 0.6s ease 0.1s both;
+        }
+
+        .hero h1 span {
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto 32px;
+            animation: fadeInUp 0.6s ease 0.2s both;
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            animation: fadeInUp 0.6s ease 0.3s both;
+        }
+
+        .hero-stat {
+            text-align: center;
+        }
+
+        .hero-stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: var(--gradient-2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ─── Sections ─── */
+        section {
+            padding: 80px 0;
+        }
+
+        .section-header {
+            margin-bottom: 48px;
+        }
+
+        .section-tag {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-cyan);
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 12px;
+        }
+
+        .section-desc {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            max-width: 650px;
+        }
+
+        /* ─── Cards ─── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 28px;
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(59, 130, 246, 0.2);
+            box-shadow: var(--shadow-glow);
+            transform: translateY(-2px);
+        }
+
+        .card-icon {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            margin-bottom: 16px;
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* ─── Problem & Solution ─── */
+        .problem-solution {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .problem-card {
+            border-left: 4px solid var(--accent-red);
+        }
+
+        .problem-card .card-icon { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+
+        .solution-card {
+            border-left: 4px solid var(--accent-green);
+        }
+
+        .solution-card .card-icon { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+
+        /* ─── Architecture Diagram ─── */
+        .arch-diagram {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .arch-diagram::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--gradient-2);
+        }
+
+        .arch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .arch-block {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            min-width: 160px;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .arch-block:hover {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+        }
+
+        .arch-block-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .arch-block-desc {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+
+        .arch-arrow {
+            font-size: 1.5rem;
+            color: var(--accent-cyan);
+            animation: arrowPulse 2s infinite;
+        }
+
+        @keyframes arrowPulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .arch-bus-system {
+            flex: 1;
+            min-width: 350px;
+            background: rgba(59, 130, 246, 0.05);
+            border: 2px dashed rgba(59, 130, 246, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .arch-bus-title {
+            font-size: 0.85rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-blue);
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .arch-bus-modules {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .arch-bus-module {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .arch-bus-module:hover {
+            border-color: var(--accent-purple);
+        }
+
+        .arch-bus-module small {
+            display: block;
+            color: var(--text-muted);
+            font-weight: 400;
+            font-size: 0.7rem;
+            margin-top: 4px;
+        }
+
+        .sensor-bank {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sensor-chip {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 16px;
+            text-align: center;
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .sensor-chip:hover { border-color: var(--accent-green); }
+
+        /* ─── Protocol Table ─── */
+        .protocol-table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+
+        thead {
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        th {
+            padding: 14px 18px;
+            text-align: left;
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-cyan);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        tr:hover td { background: rgba(59, 130, 246, 0.03); }
+
+        /* ─── Timing Diagram ─── */
+        .timing-diagram {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 28px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            line-height: 2;
+            color: var(--accent-cyan);
+            white-space: pre;
+        }
+
+        /* ─── Memory Map ─── */
+        .memory-map {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .mem-block {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .mem-block:hover {
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .mem-block-header {
+            padding: 14px 18px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .mem-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 18px;
+            font-size: 0.82rem;
+            border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+        }
+
+        .mem-row:last-child { border-bottom: none; }
+
+        .mem-addr {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-purple);
+            font-size: 0.78rem;
+        }
+
+        .mem-label {
+            color: var(--text-secondary);
+        }
+
+        .mem-type-input { color: var(--accent-orange); }
+        .mem-type-output { color: var(--accent-green); }
+
+        /* ─── Flowchart (CSS-based) ─── */
+        .flowchart {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+            padding: 40px 20px;
+        }
+
+        .flow-node {
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            min-width: 220px;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .flow-node:hover {
+            transform: scale(1.03);
+        }
+
+        .flow-start {
+            background: var(--gradient-1);
+            color: white;
+            border-radius: 30px;
+        }
+
+        .flow-process {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .flow-decision {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--accent-orange);
+            transform: rotate(0deg);
+            border-radius: 8px;
+            min-width: 250px;
+        }
+
+        .flow-action {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--accent-green);
+        }
+
+        .flow-end {
+            background: var(--gradient-4);
+            color: white;
+            border-radius: 30px;
+        }
+
+        .flow-arrow {
+            width: 2px;
+            height: 28px;
+            background: var(--text-muted);
+            position: relative;
+        }
+
+        .flow-arrow::after {
+            content: '▼';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--text-muted);
+            font-size: 0.6rem;
+        }
+
+        .flow-arrow-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            position: absolute;
+            right: -60px;
+            top: 50%;
+            transform: translateY(-50%);
+            white-space: nowrap;
+        }
+
+        .flow-branch {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        .flow-branch-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        .flow-branch-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        /* ─── Roadmap / Phases ─── */
+        .roadmap {
+            position: relative;
+        }
+
+        .roadmap::before {
+            content: '';
+            position: absolute;
+            left: 24px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--accent-blue), var(--accent-purple), var(--accent-green));
+        }
+
+        .phase {
+            position: relative;
+            padding-left: 64px;
+            margin-bottom: 48px;
+        }
+
+        .phase-dot {
+            position: absolute;
+            left: 14px;
+            top: 4px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 3px solid;
+            background: var(--bg-primary);
+            z-index: 1;
+        }
+
+        .phase-number {
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+        }
+
+        .phase h3 {
+            font-size: 1.3rem;
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+
+        .phase-duration {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .phase-tasks {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .phase-tasks li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+        }
+
+        .phase-tasks li::before {
+            content: '▸';
+            color: var(--accent-cyan);
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .phase-deliverables {
+            margin-top: 16px;
+            padding: 14px 18px;
+            background: rgba(59, 130, 246, 0.05);
+            border: 1px solid rgba(59, 130, 246, 0.1);
+            border-radius: 10px;
+        }
+
+        .phase-deliverables h4 {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-blue);
+            margin-bottom: 8px;
+        }
+
+        .phase-deliverables p {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        /* ─── Code Block ─── */
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .code-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+        }
+
+        .code-dot-r { background: #ff5f57; }
+        .code-dot-y { background: #febc2e; }
+        .code-dot-g { background: #28c840; }
+
+        .code-filename {
+            margin-left: 8px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .code-body {
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            line-height: 1.8;
+            overflow-x: auto;
+            color: var(--text-secondary);
+        }
+
+        .code-body .kw { color: var(--accent-purple); }
+        .code-body .type { color: var(--accent-cyan); }
+        .code-body .comment { color: var(--text-muted); font-style: italic; }
+        .code-body .str { color: var(--accent-green); }
+        .code-body .num { color: var(--accent-orange); }
+        .code-body .sig { color: var(--accent-blue); }
+
+        /* ─── Checklist ─── */
+        .checklist {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 12px;
+        }
+
+        .check-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .check-item:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .check-box {
+            width: 20px; height: 20px;
+            border: 2px solid var(--text-muted);
+            border-radius: 5px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .check-box.checked {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .check-box.checked::after {
+            content: '✓';
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        /* ─── Info callouts ─── */
+        .callout {
+            padding: 18px 22px;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-size: 0.88rem;
+        }
+
+        .callout-info {
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: var(--accent-blue);
+        }
+
+        .callout-warning {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            color: var(--accent-orange);
+        }
+
+        .callout-tip {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--accent-green);
+        }
+
+        .callout-title {
+            font-weight: 700;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ─── Module Hierarchy ─── */
+        .module-tree {
+            padding-left: 0;
+        }
+
+        .module-tree, .module-tree ul {
+            list-style: none;
+        }
+
+        .module-tree ul {
+            padding-left: 28px;
+            border-left: 1px solid var(--border-color);
+            margin-left: 12px;
+        }
+
+        .module-tree li {
+            padding: 6px 0;
+            position: relative;
+        }
+
+        .module-tree > li > ul > li::before {
+            content: '';
+            position: absolute;
+            left: -28px;
+            top: 16px;
+            width: 20px;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .module-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            padding: 4px 10px;
+            background: rgba(6, 182, 212, 0.08);
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .module-desc {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-left: 8px;
+        }
+
+        /* ─── Signal Waveform ─── */
+        .waveform-container {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            overflow-x: auto;
+        }
+
+        .waveform-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .waveform-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .waveform-label {
+            width: 80px;
+            flex-shrink: 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-align: right;
+            padding-right: 12px;
+        }
+
+        .waveform-bits {
+            display: flex;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+        }
+
+        .waveform-bit {
+            width: 36px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border-color);
+            margin-right: -1px;
+        }
+
+        .wb-high { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+        .wb-low { background: rgba(239, 68, 68, 0.08); color: var(--text-muted); }
+        .wb-data { background: rgba(139, 92, 246, 0.12); color: var(--accent-purple); }
+        .wb-addr { background: rgba(59, 130, 246, 0.12); color: var(--accent-blue); }
+        .wb-out { background: rgba(245, 158, 11, 0.12); color: var(--accent-orange); }
+        .wb-clk { border: none; font-size: 0.9rem; }
+
+        /* ─── Footer ─── */
+        footer {
+            padding: 40px 0;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+        }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 768px) {
+            .problem-solution { grid-template-columns: 1fr; }
+            .hero-stats { gap: 20px; flex-wrap: wrap; }
+            .nav-links { display: none; }
+            .arch-container { flex-direction: column; }
+            .arch-bus-modules { grid-template-columns: 1fr; }
+            .flow-branch { flex-direction: column; align-items: center; }
+        }
+
+        /* ─── Snapshot Explainer ─── */
+        .snapshot-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .snapshot-step {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 22px;
+            position: relative;
+        }
+
+        .snapshot-step-num {
+            position: absolute;
+            top: -12px;
+            left: 18px;
+            width: 24px; height: 24px;
+            background: var(--gradient-1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: white;
+        }
+
+        .snapshot-step h4 {
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            margin-top: 4px;
+        }
+
+        .snapshot-step p {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        /* ─── File structure ─── */
+        .file-tree {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 2;
+            color: var(--text-secondary);
+        }
+
+        .file-tree .dir { color: var(--accent-blue); font-weight: 600; }
+        .file-tree .file { color: var(--accent-cyan); }
+        .file-tree .desc { color: var(--text-muted); font-style: italic; }
+
+        /* ─── Tab system ─── */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
+        }
+
+        .tab-btn:hover:not(.active) {
+            color: var(--text-primary);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Utils */
+        .mt-2 { margin-top: 16px; }
+        .mt-3 { margin-top: 24px; }
+        .mt-4 { margin-top: 32px; }
+        .mb-2 { margin-bottom: 16px; }
+        .mb-3 { margin-bottom: 24px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+        .tag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 100px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .tag-blue { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+        .tag-green { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+        .tag-purple { background: rgba(139,92,246,0.15); color: var(--accent-purple); }
+        .tag-orange { background: rgba(245,158,11,0.15); color: var(--accent-orange); }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-3, .snapshot-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+<div class="bg-orb bg-orb-3"></div>
+
+<!-- ─── Navigation ─── -->
+<nav>
+    <div class="container">
+        <div class="nav-logo">⚡ SPI Bus Controller</div>
+        <ul class="nav-links">
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#protocol">Protocol</a></li>
+            <li><a href="#memory">Memory Map</a></li>
+            <li><a href="#snapshot">Snapshot</a></li>
+            <li><a href="#modules">Modules</a></li>
+            <li><a href="#waveforms">Waveforms</a></li>
+            <li><a href="#roadmap">Roadmap</a></li>
+            <li><a href="#files">Files</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- ─── Hero ─── -->
+<header class="hero">
+    <div class="container">
+        <div class="hero-badge">ECE Capstone Project</div>
+        <h1>Serial <span>SPI Bus Controller</span><br>in Verilog HDL</h1>
+        <p>A shared-bus architecture replacing traditional multi-wire SPI with an addressable, serial protocol featuring snapshot-based data consistency — designed for scalable multi-sensor systems.</p>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="hero-stat-value">3</div>
+                <div class="hero-stat-label">Wires Total</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">256</div>
+                <div class="hero-stat-label">Addressable Locations</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">1-bit</div>
+                <div class="hero-stat-label">Serial Interface</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">5</div>
+                <div class="hero-stat-label">Phases</div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!--                 SECTION 1: OVERVIEW                     -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section id="overview">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-tag">01 — The Problem & Solution</div>
+            <h2 class="section-title">Why a Bus-Based SPI?</h2>
+            <p class="section-desc">Traditional SPI uses dedicated chip-select (CS) lines per slave. With N sensors, you need N+3 wires — quickly exhausting your MCU pins.</p>
+        </div>
+
+        <div class="problem-solution">
+            <div class="card problem-card">
+                <div class="card-icon">🔴</div>
+                <h3>Traditional SPI Problem</h3>
+                <p>Each slave device requires <strong>4 dedicated wires</strong> (MOSI, MISO, SCLK, CS). For 8 sensors, that's <strong>11 wires minimum</strong> (3 shared + 8 CS lines). Most microcontrollers simply don't have enough GPIO pins, requiring expensive multiplexers or port expanders.</p>
+                <div class="mt-2">
+                    <span class="tag tag-orange">Pin Limited</span>
+                    <span class="tag tag-orange">Poor Scalability</span>
+                </div>
+            </div>
+            <div class="card solution-card">
+                <div class="card-icon">🟢</div>
+                <h3>Your Bus Solution</h3>
+                <p>A single <strong>3-wire serial bus</strong> (CLK, DATA_IN, DATA_OUT) connects ALL sensors through an addressable controller. Use <strong>2-bit commands + 8-bit addresses</strong> to communicate with up to 256 register locations. Add sensors without adding wires!</p>
+                <div class="mt-2">
+                    <span class="tag tag-green">3 Wires Only</span>
+                    <span class="tag tag-green">256 Addresses</span>
+                    <span class="tag tag-green">Scalable</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!--               SECTION 2: ARCHITECTURE                   -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section id="architecture">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-tag">02 — System Architecture</div>
+            <h2 class="section-title">High-Level Block Diagram</h2>
+            <p class="section-desc">The entire system sits between your microcontroller and the sensor array, abstracting away pin complexity.</p>
+        </div>
+
+        <div class="arch-diagram">
+            <div class="arch-container">
+                <!-- MCU -->
+                <div class="arch-block" style="border-color: var(--accent-orange);">
+                    <div class="arch-block-title" style="color: var(--accent-orange);">🎛️ Microcontroller</div>
+                    <div class="arch-block-desc">
+                        CLK →<br>
+                        DATA_IN → (1-bit serial)<br>
+                        ← DATA_OUT (1-bit serial)<br>
+                        CS → (chip select)
+                    </div>
+                </div>
+
+                <div class="arch-arrow">⟶</div>
+
+                <!-- Bus System -->
+                <div class="arch-bus-system">
+                    <div class="arch-bus-title">🔷 SPI Bus Controller (Your Verilog Design)</div>
+                    <div class="arch-bus-modules">
+                        <div class="arch-bus-module" style="border-color: rgba(139,92,246,0.3);">
+                            FSM Controller
+                            <small>State machine for protocol</small>
+                        </div>
+                        <div class="arch-bus-module" style="border-color: rgba(6,182,212,0.3);">
+                            Shift Register
+                            <small>Serial ↔ Parallel conversion</small>
+                        </div>
+                        <div class="arch-bus-module" style="border-color: rgba(59,130,246,0.3);">
+                            Address Decoder
+                            <small>Maps address → sensor</small>
+                        </div>
+                        <div class="arch-bus-module" style="border-color: rgba(16,185,129,0.3);">
+                            Register File
+                            <small>256 × 1-bit registers</small>
+                        </div>
+                        <div class="arch-bus-module" style="border-color: rgba(245,158,11,0.3);">
+                            Snapshot Logic
+                            <small>Latches output on read cmd</small>
+                        </div>
+                        <div class="arch-bus-module" style="border-color: rgba(236,72,153,0.3);">
+                            Sensor Interface
+                            <small>Parallel bus to sensors</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arch-arrow">⟶</div>
+
+                <!-- Sensors -->
+                <div class="sensor-bank">
+                    <div class="sensor-chip" style="border-color: rgba(16,185,129,0.3);">🌡️ Sensor 0<br><small>Addr 0x00–0x08</small></div>
+                    <div class="sensor-chip" style="border-color: rgba(6,182,212,0.3);">🔊 Sensor 1<br><small>Addr 0x09–0x11</small></div>
+                    <div class="sensor-chip" style="border-color: rgba(139,92,246,0.3);">💡 Sensor 2<br><small>Addr 0x12–0x1A</small></div>
+                    <div class="sensor-chip" style="border-color: rgba(245,158,11,0.3);">⚙️ Sensor N<br><small>Addr ...</small></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="callout callout-info mt-3">
+            <div class="callout-title">💡 Key Insight</div>
+            The bus controller acts as a <strong>bridge</strong> — it accepts 1-bit serial data from the MCU side and communicates with sensors over a wider parallel interface (4-bit, 8-bit, etc.). The MCU never directly talks to the sensors.
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!--                 SECTION 3: PROTOCOL                     -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section id="protocol">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-tag">03 — Communication Protocol</div>
+            <h2 class="section-title">Serial Bus Protocol Specification</h2>
+            <p class="section-desc">A simple, deterministic protocol with fixed-length commands. All timing is synchronous to CLK.</p>
+        </div>
+
+        <!-- Command Format -->
+        <div class="card mb-3">
+            <h3 style="margin-bottom: 16px;">📋 Command Frame Format</h3>
+            <div class="timing-diagram">
+CLK Cycle:  │ 1  │ 2  │ 3  │ 4  │ 5  │ 6  │ 7  │ 8  │ 9  │ 10 │ 11 │ 12 │ 13 │ 14 │
+            ├────┼────┼────┼────┼────┼────┼────┼────┼────┼────┼────┼────┼────┼────┤
+DATA_IN:    │ M1 │ M0 │ A7 │ A6 │ A5 │ A4 │ A3 │ A2 │ A1 │ A0 │ D3 │ D2 │ D1 │ D0 │
+            ├────┼────┼────┼────┼────┼────┼────┼────┼────┼────┼────┼────┼────┼────┤
+            │◄ MODE ►│◄──────── ADDRESS (8-bit) ────────►│◄─── DATA (4-bit) ──►│
+            │ (2-bit) │                                    │  (Read: on DATA_OUT)│
+            │         │                                    │  (Write: on DATA_IN)│</div>
+        </div>
+
+        <!-- Mode Table -->
+        <div class="protocol-table-wrapper mb-3">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mode Bits (M1 M0)</th>
+                        <th>Operation</th>
+                        <th>Total Clocks</th>
+                        <th>Description</th>
+                        <th>Side Effect</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code style="color: var(--accent-green); font-family: 'JetBrains Mono', monospace;">00</code></td>
+                        <td><strong style="color: var(--accent-green);">READ</strong></td>
+                        <td>14 (2+8+4)</td>
+                        <td>Reads 4 consecutive 1-bit registers starting from the given address. Data appears on DATA_OUT line.</td>
+                        <td>🔒 <strong>Snapshot triggered</strong> — all sensor output registers are latched</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--accent-blue); font-family: 'JetBrains Mono', monospace;">01</code></td>
+                        <td><strong style="color: var(--accent-blue);">WRITE</strong></td>
+                        <td>14 (2+8+4)</td>
+                        <td>Writes 4 consecutive 1-bit values to registers starting from the given address. Data comes from DATA_IN line.</td>
+                        <td>Sensor input registers updated</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--accent-orange); font-family: 'JetBrains Mono', monospace;">10</code></td>
+                        <td><strong style="color: var(--accent-orange);">RESET</strong></td>
+                        <td>2</td>
+                        <td>Resets all registers and internal state to default values.</td>
+                        <td>All registers cleared, FSM returns to IDLE</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">11</code></td>
+                        <td><strong style="color: var(--text-muted);">RESERVED</strong></td>
+                        <td>—</td>
+                        <td>Reserved for future use (e.g., status query, burst mode).</td>
+                        <td>No operation</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="callout callout-warning">
+            <div class="callout-title">⚠️ Design Note — MSB First</div>
+            Data is transmitted <strong>MSB first</strong> (most-significant bit first) on both DATA_IN and DATA_OUT lines. The address <code>0b00000101</code> is sent as bits: 0, 0, 0, 0, 0, 1, 0, 1 over 8 clock cycles.
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!--               SECTION 4: MEMORY MAP                     -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section id="memory">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-tag">04 — Memory Map</div>
+            <h2 class="section-title">Address Space Layout</h2>
+            <p class="section-desc">Each sensor is allocated a fixed block of addresses — split into input registers (MCU → Sensor) and output registers (Sensor → MCU). With 8-bit addressing, you have 256 locations total.</p>
+        </div>
+
+        <div class="memory-map">
+            <!-- Sensor 0 -->
+            <div class="mem-block">
+                <div class="mem-block-header" style="background: rgba(16,185,129,0.08); color: var(--accent-green);">
+                    🌡️ Sensor 0 — Temperature
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x00 (00000000)</span>
+                    <span class="mem-label mem-type-input">Input Bit 0</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x01 (00000001)</span>
+                    <span class="mem-label mem-type-input">Input Bit 1</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x02 (00000010)</span>
+                    <span class="mem-label mem-type-input">Input Bit 2</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x03 (00000011)</span>
+                    <span class="mem-label mem-type-input">Input Bit 3</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x04 (00000100)</span>
+                    <span class="mem-label mem-type-input">Input Bit 4</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x05 (00000101)</span>
+                    <span class="mem-label mem-type-output">Output Bit 0 🔒</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x06 (00000110)</span>
+                    <span class="mem-label mem-type-output">Output Bit 1 🔒</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x07 (00000111)</span>
+                    <span class="mem-label mem-type-output">Output Bit 2 🔒</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x08 (00001000)</span>
+                    <span class="mem-label mem-type-output">Output Bit 3 🔒</span>
+                </div>
+            </div>
+
+            <!-- Sensor 1 -->
+            <div class="mem-block">
+                <div class="mem-block-header" style="background: rgba(6,182,212,0.08); color: var(--accent-cyan);">
+                    🔊 Sensor 1 — Sound Level
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x09 (00001001)</span>
+                    <span class="mem-label mem-type-input">Input Bit 0</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x0A (00001010)</span>
+                    <span class="mem-label mem-type-input">Input Bit 1</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x0B (00001011)</span>
+                    <span class="mem-label mem-type-input">Input Bit 2</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x0C (00001100)</span>
+                    <span class="mem-label mem-type-input">Input Bit 3</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x0D (00001101)</span>
+                    <span class="mem-label mem-type-input">Input Bit 4</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x0E (00001110)</span>
+                    <span class="mem-label mem-type-output">Output Bit 0 🔒</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x0F (00001111)</span>
+                    <span class="mem-label mem-type-output">Output Bit 1 🔒</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x10 (00010000)</span>
+                    <span class="mem-label mem-type-output">Output Bit 2 🔒</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x11 (00010001)</span>
+                    <span class="mem-label mem-type-output">Output Bit 3 🔒</span>
+                </div>
+            </div>
+
+            <!-- Sensor 2 -->
+            <div class="mem-block">
+                <div class="mem-block-header" style="background: rgba(139,92,246,0.08); color: var(--accent-purple);">
+                    💡 Sensor 2 — Light Intensity
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x12 (00010010)</span>
+                    <span class="mem-label mem-type-input">Input Bit 0</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x13 (00010011)</span>
+                    <span class="mem-label mem-type-input">Input Bit 1</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x14 (00010100)</span>
+                    <span class="mem-label mem-type-input">Input Bit 2</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x15 (00010101)</span>
+                    <span class="mem-label mem-type-input">Input Bit 3</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x16 (00010110)</span>
+                    <span class="mem-label mem-type-input">Input Bit 4</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x17 (00010111)</span>
+                    <span class="mem-label mem-type-output">Output Bit 0 🔒</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x18 (00011000)</span>
+                    <span class="mem-label mem-type-output">Output Bit 1 🔒</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x19 (00011001)</span>
+                    <span class="mem-label mem-type-output">Output Bit 2 🔒</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">0x1A (00011010)</span>
+                    <span class="mem-label mem-type-output">Output Bit 3 🔒</span>
+                </div>
+            </div>
+
+            <!-- General Pattern -->
+            <div class="mem-block" style="border-color: rgba(245,158,11,0.3);">
+                <div class="mem-block-header" style="background: rgba(245,158,11,0.08); color: var(--accent-orange);">
+                    📐 General Pattern (per sensor)
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">Base + 0..4</span>
+                    <span class="mem-label mem-type-input">5 × Input Registers</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">Base + 5..8</span>
+                    <span class="mem-label mem-type-output">4 × Output Registers 🔒</span>
+                </div>
+                <div class="mem-row">
+                    <span class="mem-addr">9 addrs/sensor</span>
+                    <span class="mem-label">= up to <strong>28 sensors</strong> in 256 addrs</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="callout callout-tip mt-3">
+            <div class="callout-title">✅ Design Tip</div>
+            The address layout is <strong>hardwired at synthesis time</strong> — no runtime configuration needed. You define the mapping with Verilog <code>parameter</code> or <code>localparam</code> statements. This makes the address decoder a simple combinational block.
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!--             SECTION 5: SNAPSHOT MECHANISM               -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section id="snapshot">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-tag">05 — Data Consistency</div>
+            <h2 class="section-title">Snapshot Latch Mechanism</h2>
+            <p class="section-desc">The core innovation — prevents data corruption during multi-cycle reads by freezing all sensor outputs atomically when a read command begins.</p>
+        </div>
+
+        <div class="card mb-3" style="border-color: rgba(239,68,68,0.2); border-left: 4px solid var(--accent-red);">
+            <h3 style="color: var(--accent-red);">🐛 The Race Condition Problem</h3>
+            <p class="mt-2" style="color: var(--text-secondary);">
+                Imagine Sensor 0 outputs <code>1010</code>. You start reading at address 0x05.<br>
+                • Clock 11: Read bit 0 → get <strong>1</strong><br>
+                • Clock 12: Read bit 1 → get <strong>0</strong><br>
+                • ⚡ <em>Sensor updates its output to <code>0101</code> right here!</em><br>
+                • Clock 13: Read bit 2 → get <strong>0</strong> (should be 1!)<br>
+                • Clock 14: Read bit 3 → get <strong>1</strong> (should be 0!)<br>
+                • Result: You read <strong><code>1001</code></strong> — which is neither <code>1010</code> nor <code>0101</code>. <strong>Corrupted data!</strong>
+            </p>
+        </div>
+
+        <div class="snapshot-grid">
+            <div class="snapshot-step">
+                <div class="snapshot-step-num">1</div>
+                <h4>Normal Operation</h4>
+                <p>Sensors continuously update their <strong>live output registers</strong> with fresh data from the physical sensor hardware. These live registers can change at any time.</p>
+            </div>
+            <div class="snapshot-step">
+                <div class="snapshot-step-num">2</div>
+                <h4>Read Command Detected</h4>
+                <p>The moment the FSM detects mode bits = <code>00</code> (read), it asserts a global <code style="color: var(--accent-cyan);">snapshot_en</code> signal. This happens in <strong>clock cycle 2</strong>, before any address bits are received.</p>
+            </div>
+            <div class="snapshot-step">
+                <div class="snapshot-step-num">3</div>
+                <h4>Registers Frozen</h4>
+                <p>All sensor output registers latch their current values into <strong>shadow/snapshot registers</strong>. The live registers keep updating from sensors, but the shadow copies are <strong>frozen</strong>. All reads come from shadow registers.</p>
+            </div>
+            <div class="snapshot-step">
+                <div class="snapshot-step-num">4</div>
+                <h4>Read Completes</h4>
+                <p>The MCU reads consistent data over the next cycles. The snapshot remains frozen until the <strong>next read command</strong> is issued, which creates a new snapshot. Write and reset commands do not affect the snapshot.</p>
+            </div>
+        </div>
+
+        <div class="callout callout-info mt-3">
+            <div class="callout-title">🔧 Implementation in Verilog</div>
+            <code style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;">
+                always @(posedge clk) begin<br>
+                &nbsp;&nbsp;if (snapshot_en)<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;shadow_reg &lt;= live_sensor_output; &nbsp;// Latch all outputs atomically<br>
+                end
+            </code>
+            <p class="mt-2">The read data path always reads from <code>shadow_reg</code>, never from <code>live_sensor_output</code>.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!--              SECTION 6: WAVEFORM DIAGRAMS               -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section id="waveforms">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-tag">06 — Timing Diagrams</div>
+            <h2 class="section-title">Signal Waveforms</h2>
+            <p class="section-desc">Visualize exactly what happens on each wire during read, write, and reset operations.</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(event, 'tab-read')">Read (00)</button>
+            <button class="tab-btn" onclick="switchTab(event, 'tab-write')">Write (01)</button>
+            <button class="tab-btn" onclick="switchTab(event, 'tab-reset')">Reset (10)</button>
+        </div>
+
+        <!-- READ Waveform -->
+        <div id="tab-read" class="tab-content active">
+            <div class="waveform-container">
+                <div class="waveform-title">Read Operation — Read 4 bits from address 0x05 (00000101)</div>
+
+                <div class="waveform-row">
+                    <div class="waveform-label">CLK</div>
+                    <div class="waveform-bits">
+                        <div class="waveform-bit wb-clk">⌝</div>
+                        <div class="waveform-bit wb-clk">⌝</div>
+                        <div class="waveform-bit wb-clk">⌝</div>
+                        <div class="waveform-bit wb-clk">⌝</div>
+                        <div class="waveform-bit wb-clk">⌝</div>
+                        <div class="waveform-bit wb-clk">⌝</div>
+                        <div class="waveform-bit wb-clk">⌝</div>
+                        <div class="waveform-bit wb-clk">⌝</div>
+                        <div class="waveform-bit wb-clk">⌝</div>
+                        <div class="waveform-bit wb-clk">⌝</div>
+                        <div class="waveform-bit wb-clk">⌝</div>
+                        <div class="waveform-bit wb-clk">⌝</div>
+                        <div class="waveform-bit wb-clk">⌝</div>
+                        <div class="waveform-bit wb-clk">⌝</div>
+                    </div>
+                </div>
+
+                <div class="waveform-row">
+                    <div class="waveform-label">Cycle #</div>
+                    <div class="waveform-bits">
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">1</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">2</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">3</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">4</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">5</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">6</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">7</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">8</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">9</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">10</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">11</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">12</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">13</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">14</div>
+                    </div>
+                </div>
+
+                <div class="waveform-row">
+                    <div class="waveform-label">DATA_IN</div>
+                    <div class="waveform-bits">
+                        <div class="waveform-bit wb-data">0</div>
+                        <div class="waveform-bit wb-data">0</div>
+                        <div class="waveform-bit wb-addr">0</div>
+                        <div class="waveform-bit wb-addr">0</div>
+                        <div class="waveform-bit wb-addr">0</div>
+                        <div class="waveform-bit wb-addr">0</div>
+                        <div class="waveform-bit wb-addr">0</div>
+                        <div class="waveform-bit wb-addr">1</div>
+                        <div class="waveform-bit wb-addr">0</div>
+                        <div class="waveform-bit wb-addr">1</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                    </div>
+                </div>
+
+                <div class="waveform-row">
+                    <div class="waveform-label">DATA_OUT</div>
+                    <div class="waveform-bits">
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-out">D₀</div>
+                        <div class="waveform-bit wb-out">D₁</div>
+                        <div class="waveform-bit wb-out">D₂</div>
+                        <div class="waveform-bit wb-out">D₃</div>
+                    </div>
+                </div>
+
+                <div class="waveform-row">
+                    <div class="waveform-label">SNAPSHOT</div>
+                    <div class="waveform-bits">
+                        <div class="waveform-bit wb-low">0</div>
+                        <div class="waveform-bit wb-high">1</div>
+                        <div class="waveform-bit wb-low">0</div>
+                        <div class="waveform-bit wb-low">0</div>
+                        <div class="waveform-bit wb-low">0</div>
+                        <div class="waveform-bit wb-low">0</div>
+                        <div class="waveform-bit wb-low">0</div>
+                        <div class="waveform-bit wb-low">0</div>
+                        <div class="waveform-bit wb-low">0</div>
+                        <div class="waveform-bit wb-low">0</div>
+                        <div class="waveform-bit wb-low">0</div>
+                        <div class="waveform-bit wb-low">0</div>
+                        <div class="waveform-bit wb-low">0</div>
+                        <div class="waveform-bit wb-low">0</div>
+                    </div>
+                </div>
+
+                <div class="waveform-row">
+                    <div class="waveform-label">FSM State</div>
+                    <div class="waveform-bits">
+                        <div class="waveform-bit wb-data" style="min-width: 72px;">MODE</div>
+                        <div class="waveform-bit wb-addr" style="min-width: 288px;">ADDRESS</div>
+                        <div class="waveform-bit wb-out" style="min-width: 144px;">DATA_READ</div>
+                    </div>
+                </div>
+            </div>
+            <p style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted);">
+                <span style="color: var(--accent-purple);">■</span> Mode bits &nbsp;&nbsp;
+                <span style="color: var(--accent-blue);">■</span> Address bits &nbsp;&nbsp;
+                <span style="color: var(--accent-orange);">■</span> Data output &nbsp;&nbsp;
+                <span style="color: var(--accent-green);">■</span> Snapshot pulse
+            </p>
+        </div>
+
+        <!-- WRITE Waveform -->
+        <div id="tab-write" class="tab-content">
+            <div class="waveform-container">
+                <div class="waveform-title">Write Operation — Write 4 bits to address 0x00 (00000000)</div>
+
+                <div class="waveform-row">
+                    <div class="waveform-label">Cycle #</div>
+                    <div class="waveform-bits">
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">1</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">2</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">3</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">4</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">5</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">6</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">7</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">8</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">9</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">10</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">11</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">12</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">13</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">14</div>
+                    </div>
+                </div>
+
+                <div class="waveform-row">
+                    <div class="waveform-label">DATA_IN</div>
+                    <div class="waveform-bits">
+                        <div class="waveform-bit wb-data">0</div>
+                        <div class="waveform-bit wb-data">1</div>
+                        <div class="waveform-bit wb-addr">0</div>
+                        <div class="waveform-bit wb-addr">0</div>
+                        <div class="waveform-bit wb-addr">0</div>
+                        <div class="waveform-bit wb-addr">0</div>
+                        <div class="waveform-bit wb-addr">0</div>
+                        <div class="waveform-bit wb-addr">0</div>
+                        <div class="waveform-bit wb-addr">0</div>
+                        <div class="waveform-bit wb-addr">0</div>
+                        <div class="waveform-bit wb-out">D₀</div>
+                        <div class="waveform-bit wb-out">D₁</div>
+                        <div class="waveform-bit wb-out">D₂</div>
+                        <div class="waveform-bit wb-out">D₃</div>
+                    </div>
+                </div>
+
+                <div class="waveform-row">
+                    <div class="waveform-label">DATA_OUT</div>
+                    <div class="waveform-bits">
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                        <div class="waveform-bit wb-low">—</div>
+                    </div>
+                </div>
+
+                <div class="waveform-row">
+                    <div class="waveform-label">FSM State</div>
+                    <div class="waveform-bits">
+                        <div class="waveform-bit wb-data" style="min-width: 72px;">MODE</div>
+                        <div class="waveform-bit wb-addr" style="min-width: 288px;">ADDRESS</div>
+                        <div class="waveform-bit wb-out" style="min-width: 144px;">DATA_WRITE</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESET Waveform -->
+        <div id="tab-reset" class="tab-content">
+            <div class="waveform-container">
+                <div class="waveform-title">Reset Operation — Only 2 clock cycles needed</div>
+
+                <div class="waveform-row">
+                    <div class="waveform-label">Cycle #</div>
+                    <div class="waveform-bits">
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">1</div>
+                        <div class="waveform-bit" style="color: var(--text-muted); border-color: var(--border-color);">2</div>
+                    </div>
+                </div>
+
+                <div class="waveform-row">
+                    <div class="waveform-label">DATA_IN</div>
+                    <div class="waveform-bits">
+                        <div class="waveform-bit wb-data">1</div>
+                        <div class="waveform-bit wb-data">0</div>
+                    </div>
+                </div>
+
+                <div class="waveform-row">
+                    <div class="waveform-label">FSM State</div>
+                    <div class="waveform-bits">
+                        <div class="waveform-bit wb-data" style="min-width: 72px;">RESET</div>
+                    </div>
+                </div>
+            </div>
+            <p style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted);">
+                After reset, all registers are cleared and the FSM returns to IDLE, ready for the next command.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!--              SECTION 7: MODULE HIERARCHY                -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section id="modules">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-tag">07 — Verilog Module Design</div>
+            <h2 class="section-title">Module Hierarchy & FSM</h2>
+            <p class="section-desc">A clean, modular decomposition of the system. Each module has a single responsibility and well-defined ports.</p>
+        </div>
+
+        <div class="grid-2 mb-3">
+            <!-- Module Tree -->
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">📦 Module Hierarchy</h3>
+                <ul class="module-tree">
+                    <li>
+                        <span class="module-name">spi_bus_top</span>
+                        <span class="module-desc">— Top-level wrapper</span>
+                        <ul>
+                            <li>
+                                <span class="module-name">fsm_controller</span>
+                                <span class="module-desc">— Main state machine</span>
+                            </li>
+                            <li>
+                                <span class="module-name">shift_register</span>
+                                <span class="module-desc">— Serial ↔ parallel</span>
+                            </li>
+                            <li>
+                                <span class="module-name">address_decoder</span>
+                                <span class="module-desc">— Addr → sensor mapping</span>
+                            </li>
+                            <li>
+                                <span class="module-name">register_file</span>
+                                <span class="module-desc">— 256 × 1-bit storage</span>
+                            </li>
+                            <li>
+                                <span class="module-name">snapshot_controller</span>
+                                <span class="module-desc">— Output latch logic</span>
+                            </li>
+                            <li>
+                                <span class="module-name">sensor_interface</span>
+                                <span class="module-desc">— Parallel sensor I/O</span>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- FSM States -->
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">🔄 FSM State Diagram</h3>
+                <div class="flowchart" style="padding: 16px 0;">
+                    <div class="flow-node flow-start" style="font-size: 0.8rem;">IDLE</div>
+                    <div class="flow-arrow"></div>
+                    <div class="flow-node flow-process" style="font-size: 0.8rem;">RECEIVE_MODE<br><small style="color: var(--text-muted);">Shift in 2 mode bits</small></div>
+                    <div class="flow-arrow"></div>
+                    <div class="flow-node flow-decision" style="font-size: 0.8rem;">Decode Mode?</div>
+                    <div style="height: 12px;"></div>
+                    <div class="flow-branch">
+                        <div class="flow-branch-item">
+                            <div class="flow-branch-label" style="color: var(--accent-green);">00 = Read</div>
+                            <div class="flow-node flow-action" style="font-size: 0.78rem; min-width: 140px;">
+                                RECV_ADDR<br>↓<br>READ_DATA<br><small>(snapshot + shift out)</small>
+                            </div>
+                        </div>
+                        <div class="flow-branch-item">
+                            <div class="flow-branch-label" style="color: var(--accent-blue);">01 = Write</div>
+                            <div class="flow-node flow-process" style="font-size: 0.78rem; min-width: 140px;">
+                                RECV_ADDR<br>↓<br>WRITE_DATA<br><small>(shift in + store)</small>
+                            </div>
+                        </div>
+                        <div class="flow-branch-item">
+                            <div class="flow-branch-label" style="color: var(--accent-orange);">10 = Reset</div>
+                            <div class="flow-node flow-end" style="font-size: 0.78rem; min-width: 120px;">
+                                RESET_ALL<br><small>(clear → IDLE)</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="height: 16px;"></div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">All paths return → IDLE after completion</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Port List -->
+        <div class="card">
+            <h3 style="margin-bottom: 16px;">🔌 Top Module Port List</h3>
+            <div class="protocol-table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Port</th>
+                            <th>Direction</th>
+                            <th>Width</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code style="color: var(--accent-cyan); font-family: 'JetBrains Mono';">clk</code></td>
+                            <td>input</td>
+                            <td>1</td>
+                            <td>System clock (from MCU)</td>
+                        </tr>
+                        <tr>
+                            <td><code style="color: var(--accent-cyan); font-family: 'JetBrains Mono';">rst_n</code></td>
+                            <td>input</td>
+                            <td>1</td>
+                            <td>Active-low asynchronous reset</td>
+                        </tr>
+                        <tr>
+                            <td><code style="color: var(--accent-cyan); font-family: 'JetBrains Mono';">cs_n</code></td>
+                            <td>input</td>
+                            <td>1</td>
+                            <td>Chip select, active-low (starts transaction)</td>
+                        </tr>
+                        <tr>
+                            <td><code style="color: var(--accent-cyan); font-family: 'JetBrains Mono';">data_in</code></td>
+                            <td>input</td>
+                            <td>1</td>
+                            <td>Serial data from MCU (mode, address, write data)</td>
+                        </tr>
+                        <tr>
+                            <td><code style="color: var(--accent-cyan); font-family: 'JetBrains Mono';">data_out</code></td>
+                            <td>output</td>
+                            <td>1</td>
+                            <td>Serial data to MCU (read data)</td>
+                        </tr>
+                        <tr>
+                            <td><code style="color: var(--accent-cyan); font-family: 'JetBrains Mono';">sensor_data_in</code></td>
+                            <td>input</td>
+                            <td>N×4</td>
+                            <td>Parallel data from all sensors (live outputs)</td>
+                        </tr>
+                        <tr>
+                            <td><code style="color: var(--accent-cyan); font-family: 'JetBrains Mono';">sensor_data_out</code></td>
+                            <td>output</td>
+                            <td>N×5</td>
+                            <td>Parallel data to all sensors (input registers)</td>
+                        </tr>
+                        <tr>
+                            <td><code style="color: var(--accent-cyan); font-family: 'JetBrains Mono';">sensor_wr_en</code></td>
+                            <td>output</td>
+                            <td>N</td>
+                            <td>Write-enable per sensor (pulses on write completion)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!--            SECTION 8: FLOWCHART (FULL)                  -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section id="flowchart">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-tag">08 — Operation Flowchart</div>
+            <h2 class="section-title">Complete Transaction Flow</h2>
+            <p class="section-desc">Step-by-step flow for a complete read or write transaction on the bus.</p>
+        </div>
+
+        <div class="arch-diagram">
+            <div class="flowchart">
+                <div class="flow-node flow-start">MCU Pulls CS Low → Transaction Begins</div>
+                <div class="flow-arrow"></div>
+                <div class="flow-node flow-process">FSM enters RECEIVE_MODE state<br><small style="color: var(--text-muted);">Shift in 2 bits from DATA_IN</small></div>
+                <div class="flow-arrow"></div>
+                <div class="flow-node flow-decision">
+                    Decode Mode Bits (M1, M0)
+                </div>
+                <div style="height: 16px;"></div>
+                <div class="flow-branch">
+                    <div class="flow-branch-item">
+                        <div class="flow-branch-label" style="color: var(--accent-green);">M=00 (READ)</div>
+                        <div class="flow-node flow-action" style="min-width: 200px;">
+                            🔒 Assert snapshot_en<br>
+                            <small>All sensor outputs latched</small>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="flow-node flow-process" style="min-width: 200px;">
+                            Receive 8 address bits<br>
+                            <small style="color: var(--text-muted);">MSB first → shift register</small>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="flow-node flow-process" style="min-width: 200px;">
+                            Address decoder selects<br>sensor + register offset
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="flow-node flow-action" style="min-width: 200px;">
+                            Shift out 4 data bits<br>
+                            on DATA_OUT line<br>
+                            <small>From shadow registers (frozen)</small>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="flow-node flow-start" style="min-width: 200px;">Return to IDLE</div>
+                    </div>
+
+                    <div class="flow-branch-item">
+                        <div class="flow-branch-label" style="color: var(--accent-blue);">M=01 (WRITE)</div>
+                        <div class="flow-node flow-process" style="min-width: 200px;">
+                            Receive 8 address bits<br>
+                            <small style="color: var(--text-muted);">MSB first → shift register</small>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="flow-node flow-process" style="min-width: 200px;">
+                            Address decoder selects<br>sensor + register offset
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="flow-node flow-process" style="min-width: 200px;">
+                            Shift in 4 data bits<br>
+                            from DATA_IN line
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="flow-node flow-action" style="min-width: 200px;">
+                            Write to register file<br>
+                            <small>Assert sensor_wr_en pulse</small>
+                        </div>
+                        <div class="flow-arrow"></div>
+                        <div class="flow-node flow-start" style="min-width: 200px;">Return to IDLE</div>
+                    </div>
+
+                    <div class="flow-branch-item">
+                        <div class="flow-branch-label" style="color: var(--accent-orange);">M=10 (RESET)</div>
+                        <div class="flow-node flow-end" style="min-width: 170px;">
+                            Clear ALL registers<br>
+                            Reset FSM → IDLE<br>
+                            <small>Only 2 clock cycles</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!--              SECTION 9: PROJECT ROADMAP                 -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section id="roadmap">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-tag">09 — Learning Roadmap</div>
+            <h2 class="section-title">5-Phase Implementation Plan</h2>
+            <p class="section-desc">A progressive, learn-as-you-build approach. Each phase builds on the previous one, teaching you a new Verilog concept while delivering working functionality.</p>
+        </div>
+
+        <div class="roadmap">
+            <!-- Phase 1 -->
+            <div class="phase">
+                <div class="phase-dot" style="border-color: var(--accent-blue);"></div>
+                <div class="phase-number" style="color: var(--accent-blue);">Phase 1 — Foundation</div>
+                <h3>Verilog Basics & Shift Register</h3>
+                <div class="phase-duration">📅 Week 1–2 &nbsp;|&nbsp; 🎯 Learn: Modules, always blocks, flip-flops</div>
+                <ul class="phase-tasks">
+                    <li>Set up your simulation environment (Icarus Verilog + GTKWave, or Vivado)</li>
+                    <li>Learn Verilog syntax: <code>module</code>, <code>input</code>/<code>output</code>, <code>wire</code>/<code>reg</code>, <code>assign</code></li>
+                    <li>Build a <strong>1-bit serial-in, parallel-out shift register</strong> (10-bit: 2 mode + 8 address)</li>
+                    <li>Build a <strong>parallel-in, serial-out shift register</strong> (4-bit for data output)</li>
+                    <li>Write testbenches: learn <code>initial</code> blocks, <code>$display</code>, <code>$dumpvars</code></li>
+                    <li>Verify shift register operations in GTKWave waveforms</li>
+                </ul>
+                <div class="phase-deliverables">
+                    <h4>✅ Deliverables</h4>
+                    <p><code>shift_register.v</code> + <code>shift_register_tb.v</code> — Working serial↔parallel conversion with passing testbench and clean waveforms.</p>
+                </div>
+            </div>
+
+            <!-- Phase 2 -->
+            <div class="phase">
+                <div class="phase-dot" style="border-color: var(--accent-cyan);"></div>
+                <div class="phase-number" style="color: var(--accent-cyan);">Phase 2 — Control Logic</div>
+                <h3>FSM Controller & Address Decoder</h3>
+                <div class="phase-duration">📅 Week 3–4 &nbsp;|&nbsp; 🎯 Learn: State machines, case statements, parameters</div>
+                <ul class="phase-tasks">
+                    <li>Learn FSM design patterns in Verilog (one-hot vs binary encoding)</li>
+                    <li>Implement the <strong>main FSM controller</strong> with states: IDLE → RECV_MODE → RECV_ADDR → READ_DATA / WRITE_DATA / RESET</li>
+                    <li>Build a <strong>bit counter</strong> to track position within each protocol phase</li>
+                    <li>Implement the <strong>address decoder</strong> — combinational logic that maps 8-bit address to sensor index + register type (input/output) + offset</li>
+                    <li>Use <code>localparam</code> to define address ranges for each sensor</li>
+                    <li>Write comprehensive testbenches for FSM state transitions</li>
+                </ul>
+                <div class="phase-deliverables">
+                    <h4>✅ Deliverables</h4>
+                    <p><code>fsm_controller.v</code> + <code>address_decoder.v</code> + testbenches — FSM correctly transitions through all states for read/write/reset commands.</p>
+                </div>
+            </div>
+
+            <!-- Phase 3 -->
+            <div class="phase">
+                <div class="phase-dot" style="border-color: var(--accent-purple);"></div>
+                <div class="phase-number" style="color: var(--accent-purple);">Phase 3 — Data Path</div>
+                <h3>Register File & Snapshot Logic</h3>
+                <div class="phase-duration">📅 Week 5–6 &nbsp;|&nbsp; 🎯 Learn: Memory arrays, multi-bit buses, synchronization</div>
+                <ul class="phase-tasks">
+                    <li>Learn Verilog memory arrays: <code>reg [0:0] mem [0:255];</code></li>
+                    <li>Implement the <strong>register file</strong> — 256 × 1-bit registers with read/write ports</li>
+                    <li>Implement <strong>auto-increment addressing</strong> — after initial address, automatically read next 3 adjacent locations</li>
+                    <li>Build the <strong>snapshot controller</strong>: shadow registers that latch on <code>snapshot_en</code></li>
+                    <li>Design the <strong>read data mux</strong>: reads always come from shadow registers</li>
+                    <li>Write a testbench that proves data consistency during reads (simulate sensor changing mid-read)</li>
+                </ul>
+                <div class="phase-deliverables">
+                    <h4>✅ Deliverables</h4>
+                    <p><code>register_file.v</code> + <code>snapshot_controller.v</code> + testbench proving snapshot prevents data corruption.</p>
+                </div>
+            </div>
+
+            <!-- Phase 4 -->
+            <div class="phase">
+                <div class="phase-dot" style="border-color: var(--accent-green);"></div>
+                <div class="phase-number" style="color: var(--accent-green);">Phase 4 — Integration</div>
+                <h3>Top Module & System Testbench</h3>
+                <div class="phase-duration">📅 Week 7–8 &nbsp;|&nbsp; 🎯 Learn: Module instantiation, hierarchical design, system verification</div>
+                <ul class="phase-tasks">
+                    <li>Learn module instantiation and port connections in Verilog</li>
+                    <li>Create <strong><code>spi_bus_top.v</code></strong> — wire all submodules together</li>
+                    <li>Build the <strong>sensor interface</strong> — connects parallel sensor data to the internal register file</li>
+                    <li>Create a <strong>mock sensor model</strong> for simulation (generates test data, simulates continuous updates)</li>
+                    <li>Write a <strong>full system testbench</strong> that exercises:
+                        <ul style="list-style: none; padding-left: 20px; margin-top: 4px;">
+                            <li>• Write configuration data to Sensor 0 input registers</li>
+                            <li>• Read back output data from Sensor 0</li>
+                            <li>• Verify snapshot correctness with changing sensor data</li>
+                            <li>• Test reset clears everything</li>
+                            <li>• Test back-to-back read/write transactions</li>
+                        </ul>
+                    </li>
+                    <li>Verify all waveforms in GTKWave match the expected timing diagrams above</li>
+                </ul>
+                <div class="phase-deliverables">
+                    <h4>✅ Deliverables</h4>
+                    <p><code>spi_bus_top.v</code> + <code>sensor_interface.v</code> + <code>mock_sensor.v</code> + <code>system_tb.v</code> — Complete working system in simulation.</p>
+                </div>
+            </div>
+
+            <!-- Phase 5 -->
+            <div class="phase">
+                <div class="phase-dot" style="border-color: var(--accent-orange);"></div>
+                <div class="phase-number" style="color: var(--accent-orange);">Phase 5 — Polish & FPGA</div>
+                <h3>Synthesis, FPGA Deployment & Documentation</h3>
+                <div class="phase-duration">📅 Week 9–10 &nbsp;|&nbsp; 🎯 Learn: Synthesis, constraints, FPGA toolchains</div>
+                <ul class="phase-tasks">
+                    <li>Run <strong>synthesis</strong> in Vivado/Quartus — fix any synthesis warnings</li>
+                    <li>Add <strong>constraint files</strong> (.xdc/.sdc) for pin assignments and clock definitions</li>
+                    <li>Target an FPGA board (e.g., Basys3, DE10-Lite) — map CLK to a button or onboard oscillator</li>
+                    <li>Connect real sensors or use <strong>switches/LEDs</strong> to simulate sensor I/O</li>
+                    <li>Use an <strong>Arduino/STM32 as the MCU</strong> to drive the serial protocol via GPIO bit-banging</li>
+                    <li>Write project documentation and prepare a demo</li>
+                    <li><strong>Bonus:</strong> Add features like error detection (parity bit), status register, interrupt output</li>
+                </ul>
+                <div class="phase-deliverables">
+                    <h4>✅ Deliverables</h4>
+                    <p>Working FPGA demo with MCU communication, project report, and recorded waveform captures from real hardware.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!--             SECTION 10: FILE STRUCTURE                  -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section id="files">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-tag">10 — Project Structure</div>
+            <h2 class="section-title">Recommended File Organization</h2>
+        </div>
+
+        <div class="file-tree">
+<span class="dir">SPI_Bus_Controller/</span>
+├── <span class="dir">docs/</span>
+│   ├── <span class="file">SPI_Bus_Project_Plan.html</span>     <span class="desc">← This document</span>
+│   ├── <span class="file">protocol_spec.md</span>              <span class="desc">← Protocol specification</span>
+│   └── <span class="file">memory_map.md</span>                 <span class="desc">← Address map reference</span>
+│
+├── <span class="dir">rtl/</span>                                <span class="desc">← Synthesizable Verilog</span>
+│   ├── <span class="file">spi_bus_top.v</span>                 <span class="desc">← Top-level module</span>
+│   ├── <span class="file">fsm_controller.v</span>              <span class="desc">← Main state machine</span>
+│   ├── <span class="file">shift_register.v</span>              <span class="desc">← Serial ↔ parallel</span>
+│   ├── <span class="file">address_decoder.v</span>             <span class="desc">← Address mapping logic</span>
+│   ├── <span class="file">register_file.v</span>               <span class="desc">← 256×1-bit register array</span>
+│   ├── <span class="file">snapshot_controller.v</span>         <span class="desc">← Output latch (shadow reg)</span>
+│   └── <span class="file">sensor_interface.v</span>            <span class="desc">← Parallel sensor bus</span>
+│
+├── <span class="dir">tb/</span>                                 <span class="desc">← Testbenches</span>
+│   ├── <span class="file">shift_register_tb.v</span>           <span class="desc">← Phase 1 test</span>
+│   ├── <span class="file">fsm_controller_tb.v</span>           <span class="desc">← Phase 2 test</span>
+│   ├── <span class="file">register_file_tb.v</span>            <span class="desc">← Phase 3 test</span>
+│   ├── <span class="file">snapshot_tb.v</span>                 <span class="desc">← Data consistency test</span>
+│   ├── <span class="file">system_tb.v</span>                   <span class="desc">← Full integration test</span>
+│   └── <span class="file">mock_sensor.v</span>                 <span class="desc">← Simulated sensor model</span>
+│
+├── <span class="dir">sim/</span>                                <span class="desc">← Simulation outputs</span>
+│   ├── <span class="file">Makefile</span>                      <span class="desc">← Icarus Verilog build script</span>
+│   └── <span class="file">*.vcd</span>                         <span class="desc">← Waveform dump files</span>
+│
+├── <span class="dir">synth/</span>                              <span class="desc">← Synthesis files</span>
+│   ├── <span class="file">constraints.xdc</span>              <span class="desc">← Pin mapping for FPGA</span>
+│   └── <span class="file">spi_bus.tcl</span>                  <span class="desc">← Vivado/Quartus script</span>
+│
+└── <span class="file">README.md</span>                         <span class="desc">← Project overview</span>
+        </div>
+
+        <!-- Starter code -->
+        <div class="mt-4">
+            <h3 style="margin-bottom: 16px;">🚀 Starter Code Template</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-dot code-dot-r"></div>
+                    <div class="code-dot code-dot-y"></div>
+                    <div class="code-dot code-dot-g"></div>
+                    <span class="code-filename">rtl/spi_bus_top.v</span>
+                </div>
+                <div class="code-body"><span class="comment">// ============================================================</span>
+<span class="comment">// SPI Bus Controller — Top Level Module</span>
+<span class="comment">// Addressable serial bus for multi-sensor communication</span>
+<span class="comment">// ============================================================</span>
+
+<span class="kw">module</span> <span class="sig">spi_bus_top</span> #(
+    <span class="kw">parameter</span> NUM_SENSORS    = <span class="num">3</span>,          <span class="comment">// Number of sensors</span>
+    <span class="kw">parameter</span> INPUT_BITS     = <span class="num">5</span>,          <span class="comment">// Input registers per sensor</span>
+    <span class="kw">parameter</span> OUTPUT_BITS    = <span class="num">4</span>,          <span class="comment">// Output registers per sensor</span>
+    <span class="kw">parameter</span> ADDR_WIDTH     = <span class="num">8</span>,          <span class="comment">// Address bus width</span>
+    <span class="kw">parameter</span> DATA_BURST     = <span class="num">4</span>           <span class="comment">// Consecutive reads/writes</span>
+)(
+    <span class="comment">// === MCU Serial Interface (1-bit) ===</span>
+    <span class="kw">input  wire</span>        <span class="sig">clk</span>,                <span class="comment">// System clock</span>
+    <span class="kw">input  wire</span>        <span class="sig">rst_n</span>,              <span class="comment">// Active-low reset</span>
+    <span class="kw">input  wire</span>        <span class="sig">cs_n</span>,               <span class="comment">// Chip select (active-low)</span>
+    <span class="kw">input  wire</span>        <span class="sig">data_in</span>,            <span class="comment">// Serial data from MCU</span>
+    <span class="kw">output reg</span>         <span class="sig">data_out</span>,           <span class="comment">// Serial data to MCU</span>
+
+    <span class="comment">// === Sensor Parallel Interface ===</span>
+    <span class="kw">input  wire</span> [NUM_SENSORS*OUTPUT_BITS-<span class="num">1</span>:<span class="num">0</span>]  <span class="sig">sensor_outputs</span>,  <span class="comment">// Live sensor data</span>
+    <span class="kw">output wire</span> [NUM_SENSORS*INPUT_BITS-<span class="num">1</span>:<span class="num">0</span>]   <span class="sig">sensor_inputs</span>,   <span class="comment">// Config to sensors</span>
+    <span class="kw">output wire</span> [NUM_SENSORS-<span class="num">1</span>:<span class="num">0</span>]              <span class="sig">sensor_wr_en</span>    <span class="comment">// Write-enable pulses</span>
+);
+
+<span class="comment">// ─── Local Parameters ───</span>
+<span class="kw">localparam</span> BITS_PER_SENSOR = INPUT_BITS + OUTPUT_BITS;  <span class="comment">// 9</span>
+<span class="kw">localparam</span> TOTAL_REGS      = NUM_SENSORS * BITS_PER_SENSOR;
+
+<span class="comment">// ─── Internal Signals ───</span>
+<span class="kw">wire</span> [<span class="num">1</span>:<span class="num">0</span>]              mode;
+<span class="kw">wire</span> [ADDR_WIDTH-<span class="num">1</span>:<span class="num">0</span>]   address;
+<span class="kw">wire</span>                    snapshot_en;
+<span class="kw">wire</span>                    read_en, write_en, reset_cmd;
+
+<span class="comment">// ─── TODO: Instantiate submodules ───</span>
+<span class="comment">// fsm_controller    u_fsm    ( ... );</span>
+<span class="comment">// shift_register    u_shift  ( ... );</span>
+<span class="comment">// address_decoder   u_addr   ( ... );</span>
+<span class="comment">// register_file     u_regs   ( ... );</span>
+<span class="comment">// snapshot_ctrl     u_snap   ( ... );</span>
+<span class="comment">// sensor_interface  u_sensor ( ... );</span>
+
+<span class="kw">endmodule</span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!--            SECTION 11: LEARNING CHECKLIST               -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section id="checklist">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-tag">11 — Verilog Learning Checklist</div>
+            <h2 class="section-title">Skills You'll Master</h2>
+            <p class="section-desc">Click to check off each skill as you learn it. This project covers core digital design concepts that every ECE student should know.</p>
+        </div>
+
+        <div class="checklist">
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>Module declaration with ports (input/output/inout)</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>Wire vs Reg — when to use each</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>Combinational logic with <code>assign</code> and <code>always @(*)</code></span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>Sequential logic with <code>always @(posedge clk)</code></span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>Shift registers (serial-in/parallel-out, parallel-in/serial-out)</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>Finite State Machine (FSM) design</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>Case statements and state encoding</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>Parameterized modules with <code>parameter</code></span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>Memory arrays (<code>reg [W:0] mem [0:D]</code>)</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>Module instantiation and hierarchical design</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>Testbench writing with <code>initial</code> blocks</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>Waveform generation and analysis (VCD + GTKWave)</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>Clock domain awareness and synchronization</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>Active-low reset and asynchronous reset patterns</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>Synthesis vs simulation constructs</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+                <div class="check-box"></div>
+                <span>FPGA synthesis and pin constraint files</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!--               SECTION 12: TOOLS & RESOURCES             -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section id="tools">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-tag">12 — Recommended Tools</div>
+            <h2 class="section-title">Development Environment</h2>
+        </div>
+
+        <div class="grid-3">
+            <div class="card">
+                <div class="card-icon" style="background: rgba(59,130,246,0.15); color: var(--accent-blue);">🛠️</div>
+                <h3>Icarus Verilog</h3>
+                <p>Free, open-source Verilog simulator. Perfect for learning. Install via <code>brew install icarus-verilog</code> (macOS) or <code>apt install iverilog</code> (Linux).</p>
+                <div class="mt-2"><span class="tag tag-blue">Free</span> <span class="tag tag-green">Beginner Friendly</span></div>
+            </div>
+            <div class="card">
+                <div class="card-icon" style="background: rgba(16,185,129,0.15); color: var(--accent-green);">📊</div>
+                <h3>GTKWave</h3>
+                <p>Waveform viewer for VCD files generated by Icarus. Visualize all your signals exactly like the timing diagrams in this document.</p>
+                <div class="mt-2"><span class="tag tag-blue">Free</span> <span class="tag tag-green">Essential</span></div>
+            </div>
+            <div class="card">
+                <div class="card-icon" style="background: rgba(139,92,246,0.15); color: var(--accent-purple);">🖥️</div>
+                <h3>Vivado / Quartus</h3>
+                <p>Industry-standard FPGA toolchains by Xilinx/Intel. Use the free WebPack/Lite editions for synthesis and FPGA deployment.</p>
+                <div class="mt-2"><span class="tag tag-purple">FPGA</span> <span class="tag tag-orange">Phase 5</span></div>
+            </div>
+        </div>
+
+        <div class="callout callout-tip mt-3">
+            <div class="callout-title">💡 Pro Tip — Simulation Makefile</div>
+            <p>Create a <code>Makefile</code> in your <code>sim/</code> directory to automate compilation and waveform viewing:</p>
+            <pre style="margin-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-secondary);">
+compile:
+    iverilog -o sim.out -g2012 ../rtl/*.v ../tb/system_tb.v
+
+run: compile
+    vvp sim.out
+
+wave: run
+    gtkwave dump.vcd &</pre>
+        </div>
+    </div>
+</section>
+
+<!-- ─── Footer ─── -->
+<footer>
+    <div class="container">
+        <p>SPI Bus Controller — Verilog Project Plan &nbsp;|&nbsp; Built for ECE Learning &nbsp;|&nbsp; 2026</p>
+        <p style="margin-top: 6px; font-size: 0.75rem;">Serial Protocol • Snapshot Latch • Addressable Bus • Modular Design</p>
+    </div>
+</footer>
+
+<!-- ─── JavaScript ─── -->
+<script>
+    function switchTab(event, tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }
+
+    function toggleCheck(item) {
+        const box = item.querySelector('.check-box');
+        box.classList.toggle('checked');
+    }
+
+    // Smooth nav background on scroll
+    window.addEventListener('scroll', () => {
+        const nav = document.querySelector('nav');
+        if (window.scrollY > 50) {
+            nav.style.background = 'rgba(10, 14, 26, 0.95)';
+        } else {
+            nav.style.background = 'rgba(10, 14, 26, 0.85)';
+        }
+    });
+
+    // Intersection Observer for fade-in animations
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('section').forEach(section => {
+        section.style.opacity = '0';
+        section.style.transform = 'translateY(30px)';
+        section.style.transition = 'all 0.6s ease';
+        observer.observe(section);
+    });
+</script>
+
+</body>
+</html>
