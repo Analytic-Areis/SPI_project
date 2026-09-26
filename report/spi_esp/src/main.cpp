@@ -8,9 +8,9 @@
 #define CS_PIN   5
 #define MISO_PIN 25  // Input only, safe
 
-// WiFi Credentials
-const char* ssid     = "Loading..";
-const char* password = "12345678";
+// WiFi Credentials (replace with your local network credentials)
+const char* ssid     = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
 
 // Live pin state tracking
 volatile bool cs_val   = true;   // Active-low, starts HIGH (idle)
